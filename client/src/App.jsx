@@ -13,7 +13,9 @@ function App() {
     const player1 = { x: 380, y: 40, width: 40, height: 44 }
     const player2 = { x: 380, y: 516, width: 40, height: 44 }
 
-    // asteroid grid
+    let p1Score = 0
+    let p2Score = 0
+
     const asteroids = []
     const rows = 5
     const cols = 12
@@ -42,6 +44,13 @@ function App() {
         })
       }
     }
+
+    const projectiles = [
+      { x: player1.x + player1.width / 2 - 2, y: player1.y + player1.height + 30, color: '#00ff88', dy: 1 },
+      { x: player1.x + player1.width / 2 - 2, y: player1.y + player1.height + 70, color: '#00ff88', dy: 1 },
+      { x: player2.x + player2.width / 2 - 2, y: player2.y - 40, color: '#ff4466', dy: -1 },
+      { x: player2.x + player2.width / 2 - 2, y: player2.y - 80, color: '#ff4466', dy: -1 },
+    ]
 
     function drawShip(x, y, w, h, color, facingUp) {
       ctx.shadowColor = color
@@ -130,10 +139,32 @@ function App() {
       ctx.fill()
     }
 
+    function drawProjectile(p) {
+      ctx.shadowColor = p.color
+      ctx.shadowBlur = 8
+      ctx.fillStyle = p.color
+      ctx.fillRect(p.x, p.y, 4, 10)
+      ctx.shadowBlur = 0
+      ctx.shadowColor = 'transparent'
+      ctx.fillStyle = p.color + '44'
+      ctx.fillRect(p.x, p.y + (p.dy > 0 ? -8 : 10), 4, 8)
+      ctx.fillStyle = p.color + '22'
+      ctx.fillRect(p.x, p.y + (p.dy > 0 ? -16 : 18), 4, 8)
+    }
+
     function draw() {
       ctx.fillStyle = '#0a0a2e'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
+      // arcade border
+      ctx.strokeStyle = '#4444ff'
+      ctx.lineWidth = 3
+      ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8)
+      ctx.strokeStyle = '#6666ff33'
+      ctx.lineWidth = 1
+      ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16)
+
+      // stars
       ctx.fillStyle = '#ffffff'
       for (let i = 0; i < 50; i++) {
         const sx = (i * 137 + 29) % canvas.width
@@ -141,6 +172,7 @@ function App() {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
+      // player labels
       ctx.font = '12px monospace'
       ctx.textAlign = 'center'
       ctx.fillStyle = '#00ff88'
@@ -148,14 +180,35 @@ function App() {
       ctx.fillStyle = '#ff4466'
       ctx.fillText('PLAYER 2', player2.x + player2.width / 2, player2.y + player2.height + 16)
 
+      // ships
       drawShip(player1.x, player1.y, player1.width, player1.height, '#00ff88', false)
       drawShip(player2.x, player2.y, player2.width, player2.height, '#ff4466', true)
 
+      // asteroids
       asteroids.forEach((a) => {
         if (a.alive) {
           drawAsteroid(a)
         }
       })
+
+      // projectiles
+      projectiles.forEach((p) => {
+        drawProjectile(p)
+      })
+
+      // scoreboard
+      ctx.fillStyle = '#ffffff'
+      ctx.font = '18px monospace'
+      ctx.textAlign = 'left'
+      ctx.fillText('P1: ' + p1Score, 20, 25)
+      ctx.textAlign = 'right'
+      ctx.fillText('P2: ' + p2Score, canvas.width - 20, canvas.height - 12)
+
+      // phase indicator
+      ctx.textAlign = 'center'
+      ctx.font = '14px monospace'
+      ctx.fillStyle = '#888888'
+      ctx.fillText('ASTEROID PHASE', canvas.width / 2, 20)
 
       requestAnimationFrame(draw)
     }
