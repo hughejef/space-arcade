@@ -13,6 +13,36 @@ function App() {
     const player1 = { x: 380, y: 40, width: 40, height: 44 }
     const player2 = { x: 380, y: 516, width: 40, height: 44 }
 
+    // asteroid grid
+    const asteroids = []
+    const rows = 5
+    const cols = 12
+    const gap = 6
+    const blockW = (canvas.width - 40 - (cols - 1) * gap) / cols
+    const blockH = 22
+    const startX = 20
+    const startY = (canvas.height - rows * (blockH + gap)) / 2
+    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff4444', '#44ff44']
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        asteroids.push({
+          x: startX + c * (blockW + gap),
+          y: startY + r * (blockH + gap),
+          width: blockW,
+          height: blockH,
+          color: colors[r],
+          alive: true,
+          bumps: [
+            Math.random() * 4 + 2,
+            Math.random() * 4 + 2,
+            Math.random() * 4 + 2,
+            Math.random() * 4 + 2,
+          ]
+        })
+      }
+    }
+
     function drawShip(x, y, w, h, color, facingUp) {
       ctx.shadowColor = color
       ctx.shadowBlur = 12
@@ -76,11 +106,34 @@ function App() {
       ctx.shadowBlur = 0
     }
 
+    function drawAsteroid(a) {
+      ctx.fillStyle = a.color
+      ctx.beginPath()
+      ctx.moveTo(a.x + a.bumps[0], a.y)
+      ctx.lineTo(a.x + a.width - a.bumps[1], a.y + a.bumps[1] / 2)
+      ctx.lineTo(a.x + a.width, a.y + a.bumps[0])
+      ctx.lineTo(a.x + a.width - a.bumps[2] / 2, a.y + a.height / 2)
+      ctx.lineTo(a.x + a.width, a.y + a.height - a.bumps[3])
+      ctx.lineTo(a.x + a.width - a.bumps[0], a.y + a.height)
+      ctx.lineTo(a.x + a.bumps[2], a.y + a.height - a.bumps[1] / 2)
+      ctx.lineTo(a.x, a.y + a.height - a.bumps[3])
+      ctx.lineTo(a.x + a.bumps[1] / 2, a.y + a.height / 2)
+      ctx.lineTo(a.x, a.y + a.bumps[2])
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = '#00000033'
+      ctx.beginPath()
+      ctx.arc(a.x + a.width * 0.3, a.y + a.height * 0.4, 3, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(a.x + a.width * 0.7, a.y + a.height * 0.6, 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
     function draw() {
       ctx.fillStyle = '#0a0a2e'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      // stars
       ctx.fillStyle = '#ffffff'
       for (let i = 0; i < 50; i++) {
         const sx = (i * 137 + 29) % canvas.width
@@ -88,7 +141,6 @@ function App() {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
-      // player labels
       ctx.font = '12px monospace'
       ctx.textAlign = 'center'
       ctx.fillStyle = '#00ff88'
@@ -98,6 +150,12 @@ function App() {
 
       drawShip(player1.x, player1.y, player1.width, player1.height, '#00ff88', false)
       drawShip(player2.x, player2.y, player2.width, player2.height, '#ff4466', true)
+
+      asteroids.forEach((a) => {
+        if (a.alive) {
+          drawAsteroid(a)
+        }
+      })
 
       requestAnimationFrame(draw)
     }
