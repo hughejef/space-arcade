@@ -42,8 +42,36 @@ io.on('connection', (socket) => {
     //console.log(`player state:`, player.currentInput);
   });
 
-  
 });
+
+// setting intervals for updating server tick snapshots
+// https://javascript.info/settimeout-setinterval#setinterval
+
+function tick() {
+  
+  // move players left and right
+  // TODO: Smooth out player movement if possible
+  for (const player of playerList.values()) {
+    if (player.currentInput.left) player.x -= 10;
+    if (player.currentInput.right) player.x += 10;
+  }
+
+  // create snapshot
+  const snapshot = {
+    players: Array.from(playerList.values()).map(p => ({
+      id: p.id,
+      x: p.x,
+      y: p.y,
+      health: p.health,
+      score: p.score
+    }))
+  };
+
+  //send broadcast to client
+  io.emit('state', snapshot);
+}
+
+setInterval(tick, 30) // server tick every 30 milliseconds
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
