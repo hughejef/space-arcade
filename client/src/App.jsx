@@ -1,7 +1,69 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
 
+const menuStyle = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100vh',
+  background: '#000',
+}
+
+const menuBoxStyle = {
+  width: '800px',
+  height: '600px',
+  background: '#0a0a2e',
+  border: '3px solid #4444ff',
+  borderRadius: '4px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  fontFamily: 'monospace',
+  position: 'relative',
+}
+
 function App() {
+  const [screen, setScreen] = useState('menu')
+
+  if (screen === 'menu') {
+    return (
+      <div style={menuStyle}>
+        <div style={menuBoxStyle}>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ color: '#00ff88', fontSize: '48px', marginBottom: '8px' }}>SPACE ARCADE</h1>
+            <p style={{ color: '#888', fontSize: '14px', marginBottom: '40px' }}>1v1 space shooter</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '250px' }}>
+              <button onClick={() => setScreen('game')} style={{
+                padding: '14px', background: '#00ff88', color: '#0a0a2e',
+                border: 'none', borderRadius: '6px', fontSize: '16px',
+                fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
+              }}>CREATE GAME</button>
+              <button onClick={() => setScreen('game')} style={{
+                padding: '14px', background: 'transparent', color: '#00ff88',
+                border: '2px solid #00ff88', borderRadius: '6px', fontSize: '16px',
+                fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
+              }}>JOIN GAME</button>
+              <button onClick={() => {}} style={{
+                padding: '14px', background: 'transparent', color: '#888',
+                border: '2px solid #444', borderRadius: '6px', fontSize: '16px',
+                fontFamily: 'monospace', cursor: 'pointer',
+              }}>LEADERBOARD</button>
+              <button onClick={() => window.close()} style={{
+                padding: '14px', background: 'transparent', color: '#ff4466',
+                border: '2px solid #ff446644', borderRadius: '6px', fontSize: '16px',
+                fontFamily: 'monospace', cursor: 'pointer',
+              }}>QUIT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <GameCanvas />
+}
+
+function GameCanvas() {
   const canvasRef = useRef(null)
 
   useEffect(() => {
