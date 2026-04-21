@@ -25,6 +25,7 @@ const menuBoxStyle = {
 function App() {
   const [screen, setScreen] = useState('menu')
   const [matchCode, setMatchCode] = useState('')
+  const [joinCode, setJoinCode] = useState('')
 
   if (screen === 'menu') {
     return (
@@ -42,7 +43,7 @@ function App() {
                 border: 'none', borderRadius: '6px', fontSize: '16px',
                 fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
               }}>CREATE GAME</button>
-              <button onClick={() => setScreen('game')} style={{
+              <button onClick={() => setScreen('join')} style={{
                 padding: '14px', background: 'transparent', color: '#00ff88',
                 border: '2px solid #00ff88', borderRadius: '6px', fontSize: '16px',
                 fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
@@ -85,6 +86,48 @@ function App() {
             }}>START GAME</button>
             <br />
             <button onClick={() => setScreen('menu')} style={{
+              padding: '10px 30px', background: 'transparent', color: '#888',
+              border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
+              fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
+            }}>BACK</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (screen === 'join') {
+    return (
+      <div style={menuStyle}>
+        <div style={menuBoxStyle}>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ color: '#ff4466', fontSize: '24px', marginBottom: '20px' }}>JOIN GAME</h2>
+            <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Enter the match code:</p>
+            <input
+              type="text"
+              maxLength={4}
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              style={{
+                background: '#1a1a3e', border: '2px solid #ff4466', borderRadius: '8px',
+                padding: '16px 20px', fontSize: '28px', color: '#ff4466',
+                textAlign: 'center', letterSpacing: '8px', fontFamily: 'monospace',
+                outline: 'none', width: '200px', marginBottom: '24px',
+              }}
+            />
+            <br />
+            <button onClick={() => {
+              if (joinCode.length === 4) {
+                setScreen('game')
+              }
+            }} style={{
+              padding: '12px 30px', background: '#ff4466', color: '#0a0a2e',
+              border: 'none', borderRadius: '6px', fontSize: '14px',
+              fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
+              marginBottom: '12px',
+            }}>JOIN</button>
+            <br />
+            <button onClick={() => { setScreen('menu'); setJoinCode('') }} style={{
               padding: '10px 30px', background: 'transparent', color: '#888',
               border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
               fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
