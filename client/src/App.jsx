@@ -48,7 +48,7 @@ function App() {
                 border: '2px solid #00ff88', borderRadius: '6px', fontSize: '16px',
                 fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
               }}>JOIN GAME</button>
-              <button onClick={() => {}} style={{
+              <button onClick={() => setScreen('leaderboard')} style={{
                 padding: '14px', background: 'transparent', color: '#888',
                 border: '2px solid #444', borderRadius: '6px', fontSize: '16px',
                 fontFamily: 'monospace', cursor: 'pointer',
@@ -131,6 +131,24 @@ function App() {
               padding: '10px 30px', background: 'transparent', color: '#888',
               border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
               fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
+            }}>BACK</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (screen === 'leaderboard') {
+    return (
+      <div style={menuStyle}>
+        <div style={menuBoxStyle}>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ color: '#ffff00', fontSize: '24px', marginBottom: '20px' }}>LEADERBOARD</h2>
+            <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>Coming soon...</p>
+            <button onClick={() => setScreen('menu')} style={{
+              padding: '10px 30px', background: 'transparent', color: '#888',
+              border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
+              fontFamily: 'monospace', cursor: 'pointer',
             }}>BACK</button>
           </div>
         </div>
