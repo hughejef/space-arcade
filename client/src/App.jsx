@@ -24,6 +24,7 @@ const menuBoxStyle = {
 
 function App() {
   const [screen, setScreen] = useState('menu')
+  const [matchCode, setMatchCode] = useState('')
 
   if (screen === 'menu') {
     return (
@@ -33,7 +34,10 @@ function App() {
             <h1 style={{ color: '#00ff88', fontSize: '48px', marginBottom: '8px' }}>SPACE ARCADE</h1>
             <p style={{ color: '#888', fontSize: '14px', marginBottom: '40px' }}>1v1 space shooter</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '250px' }}>
-              <button onClick={() => setScreen('game')} style={{
+              <button onClick={() => {
+                setScreen('lobby')
+                setMatchCode(Math.random().toString(36).substring(2, 6).toUpperCase())
+              }} style={{
                 padding: '14px', background: '#00ff88', color: '#0a0a2e',
                 border: 'none', borderRadius: '6px', fontSize: '16px',
                 fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
@@ -54,6 +58,37 @@ function App() {
                 fontFamily: 'monospace', cursor: 'pointer',
               }}>QUIT</button>
             </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (screen === 'lobby') {
+    return (
+      <div style={menuStyle}>
+        <div style={menuBoxStyle}>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '20px' }}>WAITING FOR OPPONENT</h2>
+            <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Share this code with your friend:</p>
+            <div style={{
+              background: '#1a1a3e', border: '2px solid #00ff88', borderRadius: '8px',
+              padding: '20px 40px', marginBottom: '30px',
+            }}>
+              <span style={{ color: '#00ff88', fontSize: '36px', letterSpacing: '8px' }}>{matchCode}</span>
+            </div>
+            <button onClick={() => setScreen('game')} style={{
+              padding: '12px 30px', background: '#00ff88', color: '#0a0a2e',
+              border: 'none', borderRadius: '6px', fontSize: '14px',
+              fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
+              marginBottom: '12px',
+            }}>START GAME</button>
+            <br />
+            <button onClick={() => setScreen('menu')} style={{
+              padding: '10px 30px', background: 'transparent', color: '#888',
+              border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
+              fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
+            }}>BACK</button>
           </div>
         </div>
       </div>
