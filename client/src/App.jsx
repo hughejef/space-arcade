@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { io } from 'socket.io-client'
 
 function App() {
   const canvasRef = useRef(null)
@@ -10,11 +11,69 @@ function App() {
     canvas.width = 800
     canvas.height = 600
 
+    const socket = io('http://localhost:3001')
+
+    socket.on('connect', () => {
+      console.log('connected to server as', socket.id)
+    })
+
+    socket.on('gameState', (state) => {
+      console.log('game state received:', state)
+    })
+
     const player1 = { x: 380, y: 40, width: 40, height: 44 }
     const player2 = { x: 380, y: 516, width: 40, height: 44 }
 
     let p1Score = 0
     let p2Score = 0
+
+    const keys = {
+      left: false,
+      right: false,
+      shoot: false,
+    }
+
+    const shipSpeed = 8
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') {
+        if (!keys.left) {
+          keys.left = true
+          socket.emit('input', { key: 'left', state: 'down' })
+        }
+      }
+      if (e.key === 'ArrowRight' || e.key === 'd') {
+        if (!keys.right) {
+          keys.right = true
+          socket.emit('input', { key: 'right', state: 'down' })
+        }
+      }
+      if (e.key === ' ') {
+        e.preventDefault()
+        if (!keys.shoot) {
+          keys.shoot = true
+          socket.emit('input', { key: 'shoot', state: 'down' })
+        }
+      }
+    }
+
+    const handleKeyUp = (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') {
+        keys.left = false
+        socket.emit('input', { key: 'left', state: 'up' })
+      }
+      if (e.key === 'ArrowRight' || e.key === 'd') {
+        keys.right = false
+        socket.emit('input', { key: 'right', state: 'up' })
+      }
+      if (e.key === ' ') {
+        keys.shoot = false
+        socket.emit('input', { key: 'shoot', state: 'up' })
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
 
     const asteroids = []
     const rows = 5
@@ -45,12 +104,7 @@ function App() {
       }
     }
 
-    const projectiles = [
-      { x: player1.x + player1.width / 2 - 2, y: player1.y + player1.height + 30, color: '#00ff88', dy: 1 },
-      { x: player1.x + player1.width / 2 - 2, y: player1.y + player1.height + 70, color: '#00ff88', dy: 1 },
-      { x: player2.x + player2.width / 2 - 2, y: player2.y - 40, color: '#ff4466', dy: -1 },
-      { x: player2.x + player2.width / 2 - 2, y: player2.y - 80, color: '#ff4466', dy: -1 },
-    ]
+    const projectiles = []
 
     function drawShip(x, y, w, h, color, facingUp) {
       ctx.shadowColor = color
@@ -153,10 +207,16 @@ function App() {
     }
 
     function draw() {
+      if (keys.left && player1.x > 10) {
+        player1.x -= shipSpeed
+      }
+      if (keys.right && player1.x < canvas.width - player1.width - 10) {
+        player1.x += shipSpeed
+      }
+
       ctx.fillStyle = '#0a0a2e'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      // arcade border
       ctx.strokeStyle = '#4444ff'
       ctx.lineWidth = 3
       ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8)
@@ -164,7 +224,6 @@ function App() {
       ctx.lineWidth = 1
       ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16)
 
-      // stars
       ctx.fillStyle = '#ffffff'
       for (let i = 0; i < 50; i++) {
         const sx = (i * 137 + 29) % canvas.width
@@ -172,31 +231,26 @@ function App() {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
-      // player labels
-      ctx.font = '12px monospace'
+      ctx.font = '11px monospace'
       ctx.textAlign = 'center'
       ctx.fillStyle = '#00ff88'
-      ctx.fillText('PLAYER 1', player1.x + player1.width / 2, player1.y - 8)
+      ctx.fillText('P1', player1.x + player1.width / 2, player1.y + 10)
       ctx.fillStyle = '#ff4466'
-      ctx.fillText('PLAYER 2', player2.x + player2.width / 2, player2.y + player2.height + 16)
+      ctx.fillText('P2', player2.x + player2.width / 2, player2.y + player2.height - 1)
 
-      // ships
       drawShip(player1.x, player1.y, player1.width, player1.height, '#00ff88', false)
       drawShip(player2.x, player2.y, player2.width, player2.height, '#ff4466', true)
 
-      // asteroids
       asteroids.forEach((a) => {
         if (a.alive) {
           drawAsteroid(a)
         }
       })
 
-      // projectiles
       projectiles.forEach((p) => {
         drawProjectile(p)
       })
 
-      // scoreboard
       ctx.fillStyle = '#ffffff'
       ctx.font = '18px monospace'
       ctx.textAlign = 'left'
@@ -204,7 +258,6 @@ function App() {
       ctx.textAlign = 'right'
       ctx.fillText('P2: ' + p2Score, canvas.width - 20, canvas.height - 12)
 
-      // phase indicator
       ctx.textAlign = 'center'
       ctx.font = '14px monospace'
       ctx.fillStyle = '#888888'
@@ -214,6 +267,12 @@ function App() {
     }
 
     draw()
+
+    return () => {
+      socket.disconnect()
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
   }, [])
 
   return (
