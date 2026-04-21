@@ -42,6 +42,7 @@ io.on('connection', (socket) => {
     //console.log(`player state:`, player.currentInput);
   });
 
+  
 });
 
 // setting intervals for updating server tick snapshots
