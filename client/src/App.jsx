@@ -22,11 +22,65 @@ const menuBoxStyle = {
   position: 'relative',
 }
 
+// shared socket connection for the whole app
+let socket = null
+
+function getSocket() {
+  if (!socket) {
+    socket = io('http://localhost:3001')
+  }
+  return socket
+}
+
 function App() {
   const [screen, setScreen] = useState('menu')
   const [matchCode, setMatchCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [userName, setUserName] = useState('')
+  const [slot, setSlot] = useState(null)
+  const [joinError, setJoinError] = useState('')
+
+  useEffect(() => {
+    const s = getSocket()
+
+    s.on('game_created', ({ matchCode, slot }) => {
+      console.log('game created:', matchCode, 'slot:', slot)
+      setMatchCode(matchCode)
+      setSlot(slot)
+      setScreen('lobby')
+    })
+
+    s.on('game_joined', ({ matchCode, slot }) => {
+      console.log('game joined:', matchCode, 'slot:', slot)
+      setMatchCode(matchCode)
+      setSlot(slot)
+      setScreen('game')
+    })
+
+    s.on('join_failed', ({ reason }) => {
+      console.log('join failed:', reason)
+      setJoinError(reason || 'Could not join game')
+    })
+
+    return () => {
+      s.off('game_created')
+      s.off('game_joined')
+      s.off('join_failed')
+    }
+  }, [])
+
+  const handleCreateGame = () => {
+    const s = getSocket()
+    s.emit('create_game', userName)
+  }
+
+  const handleJoinGame = () => {
+    if (joinCode.length === 4) {
+      setJoinError('')
+      const s = getSocket()
+      s.emit('join_game', joinCode, userName)
+    }
+  }
 
   if (screen === 'menu') {
     return (
@@ -53,10 +107,7 @@ function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '250px', margin: '0 auto' }}>
               <button
                 disabled={!userName.trim()}
-                onClick={() => {
-                  setScreen('lobby')
-                  setMatchCode(Math.random().toString(36).substring(2, 6).toUpperCase())
-                }}
+                onClick={handleCreateGame}
                 style={{
                   padding: '14px',
                   background: userName.trim() ? '#00ff88' : '#00ff8844',
@@ -99,7 +150,8 @@ function App() {
         <div style={menuBoxStyle}>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '8px' }}>WAITING FOR OPPONENT</h2>
-            <p style={{ color: '#00ff88aa', fontSize: '12px', marginBottom: '20px' }}>Playing as: {userName}</p>
+            <p style={{ color: '#00ff88aa', fontSize: '12px', marginBottom: '4px' }}>Playing as: {userName}</p>
+            <p style={{ color: '#888', fontSize: '11px', marginBottom: '20px' }}>You are {slot}</p>
             <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Share this code with your friend:</p>
             <div style={{
               background: '#1a1a3e', border: '2px solid #00ff88', borderRadius: '8px',
@@ -107,13 +159,6 @@ function App() {
             }}>
               <span style={{ color: '#00ff88', fontSize: '36px', letterSpacing: '8px' }}>{matchCode}</span>
             </div>
-            <button onClick={() => setScreen('game')} style={{
-              padding: '12px 30px', background: '#00ff88', color: '#0a0a2e',
-              border: 'none', borderRadius: '6px', fontSize: '14px',
-              fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
-              marginBottom: '12px',
-            }}>START GAME</button>
-            <br />
             <button onClick={() => setScreen('menu')} style={{
               padding: '10px 30px', background: 'transparent', color: '#888',
               border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
@@ -137,27 +182,26 @@ function App() {
               type="text"
               maxLength={4}
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError('') }}
               style={{
                 background: '#1a1a3e', border: '2px solid #ff4466', borderRadius: '8px',
                 padding: '16px 20px', fontSize: '28px', color: '#ff4466',
                 textAlign: 'center', letterSpacing: '8px', fontFamily: 'monospace',
-                outline: 'none', width: '200px', marginBottom: '24px',
+                outline: 'none', width: '200px', marginBottom: '16px',
               }}
             />
+            {joinError && (
+              <p style={{ color: '#ff4466', fontSize: '12px', marginBottom: '12px' }}>{joinError}</p>
+            )}
             <br />
-            <button onClick={() => {
-              if (joinCode.length === 4) {
-                setScreen('game')
-              }
-            }} style={{
+            <button onClick={handleJoinGame} style={{
               padding: '12px 30px', background: '#ff4466', color: '#0a0a2e',
               border: 'none', borderRadius: '6px', fontSize: '14px',
               fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
               marginBottom: '12px',
             }}>JOIN</button>
             <br />
-            <button onClick={() => { setScreen('menu'); setJoinCode('') }} style={{
+            <button onClick={() => { setScreen('menu'); setJoinCode(''); setJoinError('') }} style={{
               padding: '10px 30px', background: 'transparent', color: '#888',
               border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
               fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
@@ -186,10 +230,10 @@ function App() {
     )
   }
 
-  return <GameCanvas />
+  return <GameCanvas slot={slot} />
 }
 
-function GameCanvas() {
+function GameCanvas({ slot }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -199,13 +243,9 @@ function GameCanvas() {
     canvas.width = 800
     canvas.height = 600
 
-    const socket = io('http://localhost:3001')
+    const s = getSocket()
 
-    socket.on('connect', () => {
-      console.log('connected to server as', socket.id)
-    })
-
-    socket.on('gameState', (state) => {
+    s.on('gameState', (state) => {
       console.log('game state received:', state)
     })
 
@@ -227,20 +267,20 @@ function GameCanvas() {
       if (e.key === 'ArrowLeft' || e.key === 'a') {
         if (!keys.left) {
           keys.left = true
-          socket.emit('input', { key: 'left', state: 'down' })
+          s.emit('input', { key: 'left', state: 'down' })
         }
       }
       if (e.key === 'ArrowRight' || e.key === 'd') {
         if (!keys.right) {
           keys.right = true
-          socket.emit('input', { key: 'right', state: 'down' })
+          s.emit('input', { key: 'right', state: 'down' })
         }
       }
       if (e.key === ' ') {
         e.preventDefault()
         if (!keys.shoot) {
           keys.shoot = true
-          socket.emit('input', { key: 'shoot', state: 'down' })
+          s.emit('input', { key: 'shoot', state: 'down' })
         }
       }
     }
@@ -248,15 +288,15 @@ function GameCanvas() {
     const handleKeyUp = (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') {
         keys.left = false
-        socket.emit('input', { key: 'left', state: 'up' })
+        s.emit('input', { key: 'left', state: 'up' })
       }
       if (e.key === 'ArrowRight' || e.key === 'd') {
         keys.right = false
-        socket.emit('input', { key: 'right', state: 'up' })
+        s.emit('input', { key: 'right', state: 'up' })
       }
       if (e.key === ' ') {
         keys.shoot = false
-        socket.emit('input', { key: 'shoot', state: 'up' })
+        s.emit('input', { key: 'shoot', state: 'up' })
       }
     }
 
@@ -457,11 +497,11 @@ function GameCanvas() {
     draw()
 
     return () => {
-      socket.disconnect()
+      s.off('gameState')
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [])
+  }, [slot])
 
   return (
     <div style={{
