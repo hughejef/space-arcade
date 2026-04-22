@@ -22,7 +22,6 @@ const menuBoxStyle = {
   position: 'relative',
 }
 
-// shared socket connection for the whole app
 let socket = null
 
 function getSocket() {
@@ -245,23 +244,26 @@ function GameCanvas({ slot }) {
 
     const s = getSocket()
 
+    // store the latest game state from server here
+    let gameState = {
+      phase: 'waiting',
+      players: {
+        player1: { x: 380, y: 40, health: 1, score: 0, userName: '' },
+        player2: { x: 380, y: 516, health: 1, score: 0, userName: '' },
+      },
+      asteroids: [],
+      projectiles: [],
+    }
+
     s.on('gameState', (state) => {
-      console.log('game state received:', state)
+      gameState = state
     })
-
-    const player1 = { x: 380, y: 40, width: 40, height: 44 }
-    const player2 = { x: 380, y: 516, width: 40, height: 44 }
-
-    let p1Score = 0
-    let p2Score = 0
 
     const keys = {
       left: false,
       right: false,
       shoot: false,
     }
-
-    const shipSpeed = 8
 
     const handleKeyDown = (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') {
@@ -303,36 +305,9 @@ function GameCanvas({ slot }) {
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
 
-    const asteroids = []
-    const rows = 5
-    const cols = 12
-    const gap = 6
-    const blockW = (canvas.width - 40 - (cols - 1) * gap) / cols
-    const blockH = 22
-    const startX = 20
-    const startY = (canvas.height - rows * (blockH + gap)) / 2
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff4444', '#44ff44']
-
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        asteroids.push({
-          x: startX + c * (blockW + gap),
-          y: startY + r * (blockH + gap),
-          width: blockW,
-          height: blockH,
-          color: colors[r],
-          alive: true,
-          bumps: [
-            Math.random() * 4 + 2,
-            Math.random() * 4 + 2,
-            Math.random() * 4 + 2,
-            Math.random() * 4 + 2,
-          ]
-        })
-      }
-    }
-
-    const projectiles = []
+    // ship dimensions 
+    const shipWidth = 40
+    const shipHeight = 44
 
     function drawShip(x, y, w, h, color, facingUp) {
       ctx.shadowColor = color
@@ -398,50 +373,24 @@ function GameCanvas({ slot }) {
     }
 
     function drawAsteroid(a) {
-      ctx.fillStyle = a.color
-      ctx.beginPath()
-      ctx.moveTo(a.x + a.bumps[0], a.y)
-      ctx.lineTo(a.x + a.width - a.bumps[1], a.y + a.bumps[1] / 2)
-      ctx.lineTo(a.x + a.width, a.y + a.bumps[0])
-      ctx.lineTo(a.x + a.width - a.bumps[2] / 2, a.y + a.height / 2)
-      ctx.lineTo(a.x + a.width, a.y + a.height - a.bumps[3])
-      ctx.lineTo(a.x + a.width - a.bumps[0], a.y + a.height)
-      ctx.lineTo(a.x + a.bumps[2], a.y + a.height - a.bumps[1] / 2)
-      ctx.lineTo(a.x, a.y + a.height - a.bumps[3])
-      ctx.lineTo(a.x + a.bumps[1] / 2, a.y + a.height / 2)
-      ctx.lineTo(a.x, a.y + a.bumps[2])
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = '#00000033'
-      ctx.beginPath()
-      ctx.arc(a.x + a.width * 0.3, a.y + a.height * 0.4, 3, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(a.x + a.width * 0.7, a.y + a.height * 0.6, 2, 0, Math.PI * 2)
-      ctx.fill()
+      // pick a color based on position or health
+      const color = '#ff8800'
+      ctx.fillStyle = color
+      ctx.fillRect(a.x, a.y, 60, 22)
+      ctx.strokeStyle = '#ffffff22'
+      ctx.strokeRect(a.x, a.y, 60, 22)
     }
 
     function drawProjectile(p) {
-      ctx.shadowColor = p.color
+      ctx.shadowColor = p.color || '#ffffff'
       ctx.shadowBlur = 8
-      ctx.fillStyle = p.color
+      ctx.fillStyle = p.color || '#ffffff'
       ctx.fillRect(p.x, p.y, 4, 10)
       ctx.shadowBlur = 0
       ctx.shadowColor = 'transparent'
-      ctx.fillStyle = p.color + '44'
-      ctx.fillRect(p.x, p.y + (p.dy > 0 ? -8 : 10), 4, 8)
-      ctx.fillStyle = p.color + '22'
-      ctx.fillRect(p.x, p.y + (p.dy > 0 ? -16 : 18), 4, 8)
     }
 
     function draw() {
-      if (keys.left && player1.x > 10) {
-        player1.x -= shipSpeed
-      }
-      if (keys.right && player1.x < canvas.width - player1.width - 10) {
-        player1.x += shipSpeed
-      }
-
       ctx.fillStyle = '#0a0a2e'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
@@ -459,37 +408,47 @@ function GameCanvas({ slot }) {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
+      // draw both players from server state
+      const p1 = gameState.players.player1
+      const p2 = gameState.players.player2
+
       ctx.font = '11px monospace'
       ctx.textAlign = 'center'
       ctx.fillStyle = '#00ff88'
-      ctx.fillText('P1', player1.x + player1.width / 2, player1.y + 10)
+      ctx.fillText('P1', p1.x + shipWidth / 2, p1.y + 10)
       ctx.fillStyle = '#ff4466'
-      ctx.fillText('P2', player2.x + player2.width / 2, player2.y + player2.height - 1)
+      ctx.fillText('P2', p2.x + shipWidth / 2, p2.y + shipHeight - 1)
 
-      drawShip(player1.x, player1.y, player1.width, player1.height, '#00ff88', false)
-      drawShip(player2.x, player2.y, player2.width, player2.height, '#ff4466', true)
+      drawShip(p1.x, p1.y, shipWidth, shipHeight, '#00ff88', false)
+      drawShip(p2.x, p2.y, shipWidth, shipHeight, '#ff4466', true)
 
-      asteroids.forEach((a) => {
-        if (a.alive) {
-          drawAsteroid(a)
-        }
+      // asteroids from server
+      gameState.asteroids.forEach((a) => {
+        drawAsteroid(a)
       })
 
-      projectiles.forEach((p) => {
+      // projectiles from server
+      gameState.projectiles.forEach((p) => {
         drawProjectile(p)
       })
 
+      // scoreboard from server state
       ctx.fillStyle = '#ffffff'
       ctx.font = '18px monospace'
       ctx.textAlign = 'left'
-      ctx.fillText('P1: ' + p1Score, 20, 25)
+      ctx.fillText((p1.userName || 'P1') + ': ' + p1.score, 20, 25)
       ctx.textAlign = 'right'
-      ctx.fillText('P2: ' + p2Score, canvas.width - 20, canvas.height - 12)
+      ctx.fillText((p2.userName || 'P2') + ': ' + p2.score, canvas.width - 20, canvas.height - 12)
 
+      // phase indicator from server state
       ctx.textAlign = 'center'
       ctx.font = '14px monospace'
       ctx.fillStyle = '#888888'
-      ctx.fillText('ASTEROID PHASE', canvas.width / 2, 20)
+      const phaseLabel = gameState.phase === 'phase1' ? 'ASTEROID PHASE' :
+                         gameState.phase === 'phase2' ? 'FIGHT PHASE' :
+                         gameState.phase === 'waiting' ? 'WAITING' :
+                         gameState.phase === 'ended' ? 'GAME OVER' : ''
+      ctx.fillText(phaseLabel, canvas.width / 2, 20)
 
       requestAnimationFrame(draw)
     }
