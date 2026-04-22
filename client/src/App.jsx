@@ -38,6 +38,7 @@ function App() {
   const [userName, setUserName] = useState('')
   const [slot, setSlot] = useState(null)
   const [joinError, setJoinError] = useState('')
+  const [matchResult, setMatchResult] = useState(null)
 
   useEffect(() => {
     const s = getSocket()
@@ -61,10 +62,17 @@ function App() {
       setJoinError(reason || 'Could not join game')
     })
 
+    s.on('end_of_match', ({ winner, finalScores }) => {
+      console.log('match ended:', winner, finalScores)
+      setMatchResult({ winner, finalScores })
+      setScreen('gameOver')
+    })
+
     return () => {
       s.off('game_created')
       s.off('game_joined')
       s.off('join_failed')
+      s.off('end_of_match')
     }
   }, [])
 
@@ -79,6 +87,14 @@ function App() {
       const s = getSocket()
       s.emit('join_game', joinCode, userName)
     }
+  }
+
+  const handlePlayAgain = () => {
+    setMatchResult(null)
+    setMatchCode('')
+    setSlot(null)
+    setJoinCode('')
+    setScreen('menu')
   }
 
   if (screen === 'menu') {
@@ -229,6 +245,45 @@ function App() {
     )
   }
 
+  if (screen === 'gameOver') {
+    const didIWin = matchResult?.winner === slot
+    const winnerColor = didIWin ? '#00ff88' : '#ff4466'
+    const winnerText = didIWin ? 'VICTORY' : 'DEFEAT'
+
+    return (
+      <div style={menuStyle}>
+        <div style={menuBoxStyle}>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ color: winnerColor, fontSize: '48px', marginBottom: '8px' }}>{winnerText}</h1>
+            <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>
+              Winner: {matchResult?.winner}
+            </p>
+            <div style={{
+              background: '#1a1a3e', border: `2px solid ${winnerColor}`, borderRadius: '8px',
+              padding: '20px 40px', marginBottom: '30px', minWidth: '280px',
+            }}>
+              <h3 style={{ color: '#ffffff', fontSize: '16px', marginBottom: '16px' }}>FINAL SCORES</h3>
+              {matchResult?.finalScores && Object.keys(matchResult.finalScores).map((player) => (
+                <p key={player} style={{
+                  color: player === matchResult.winner ? '#00ff88' : '#888',
+                  fontSize: '18px',
+                  marginBottom: '8px',
+                }}>
+                  {player}: {matchResult.finalScores[player]}
+                </p>
+              ))}
+            </div>
+            <button onClick={handlePlayAgain} style={{
+              padding: '12px 30px', background: '#00ff88', color: '#0a0a2e',
+              border: 'none', borderRadius: '6px', fontSize: '14px',
+              fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
+            }}>PLAY AGAIN</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return <GameCanvas slot={slot} />
 }
 
@@ -244,7 +299,6 @@ function GameCanvas({ slot }) {
 
     const s = getSocket()
 
-    // store the latest game state from server here
     let gameState = {
       phase: 'waiting',
       players: {
@@ -305,7 +359,6 @@ function GameCanvas({ slot }) {
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
 
-    // ship dimensions 
     const shipWidth = 40
     const shipHeight = 44
 
@@ -373,7 +426,6 @@ function GameCanvas({ slot }) {
     }
 
     function drawAsteroid(a) {
-      // pick a color based on position or health
       const color = '#ff8800'
       ctx.fillStyle = color
       ctx.fillRect(a.x, a.y, 60, 22)
@@ -408,7 +460,6 @@ function GameCanvas({ slot }) {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
-      // draw both players from server state
       const p1 = gameState.players.player1
       const p2 = gameState.players.player2
 
@@ -422,17 +473,14 @@ function GameCanvas({ slot }) {
       drawShip(p1.x, p1.y, shipWidth, shipHeight, '#00ff88', false)
       drawShip(p2.x, p2.y, shipWidth, shipHeight, '#ff4466', true)
 
-      // asteroids from server
       gameState.asteroids.forEach((a) => {
         drawAsteroid(a)
       })
 
-      // projectiles from server
       gameState.projectiles.forEach((p) => {
         drawProjectile(p)
       })
 
-      // scoreboard from server state
       ctx.fillStyle = '#ffffff'
       ctx.font = '18px monospace'
       ctx.textAlign = 'left'
@@ -440,7 +488,6 @@ function GameCanvas({ slot }) {
       ctx.textAlign = 'right'
       ctx.fillText((p2.userName || 'P2') + ': ' + p2.score, canvas.width - 20, canvas.height - 12)
 
-      // phase indicator from server state
       ctx.textAlign = 'center'
       ctx.font = '14px monospace'
       ctx.fillStyle = '#888888'
