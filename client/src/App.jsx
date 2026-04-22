@@ -26,6 +26,7 @@ function App() {
   const [screen, setScreen] = useState('menu')
   const [matchCode, setMatchCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
+  const [userName, setUserName] = useState('')
 
   if (screen === 'menu') {
     return (
@@ -33,21 +34,48 @@ function App() {
         <div style={menuBoxStyle}>
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ color: '#00ff88', fontSize: '48px', marginBottom: '8px' }}>SPACE ARCADE</h1>
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '40px' }}>1v1 space shooter</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '250px' }}>
-              <button onClick={() => {
-                setScreen('lobby')
-                setMatchCode(Math.random().toString(36).substring(2, 6).toUpperCase())
-              }} style={{
-                padding: '14px', background: '#00ff88', color: '#0a0a2e',
-                border: 'none', borderRadius: '6px', fontSize: '16px',
-                fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
-              }}>CREATE GAME</button>
-              <button onClick={() => setScreen('join')} style={{
-                padding: '14px', background: 'transparent', color: '#00ff88',
-                border: '2px solid #00ff88', borderRadius: '6px', fontSize: '16px',
-                fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
-              }}>JOIN GAME</button>
+            <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>1v1 space shooter</p>
+
+            <input
+              type="text"
+              placeholder="Enter username"
+              maxLength={12}
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              style={{
+                background: '#1a1a3e', border: '2px solid #4444ff', borderRadius: '6px',
+                padding: '10px 16px', fontSize: '16px', color: '#ffffff',
+                textAlign: 'center', fontFamily: 'monospace',
+                outline: 'none', width: '220px', marginBottom: '20px',
+              }}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '250px', margin: '0 auto' }}>
+              <button
+                disabled={!userName.trim()}
+                onClick={() => {
+                  setScreen('lobby')
+                  setMatchCode(Math.random().toString(36).substring(2, 6).toUpperCase())
+                }}
+                style={{
+                  padding: '14px',
+                  background: userName.trim() ? '#00ff88' : '#00ff8844',
+                  color: '#0a0a2e',
+                  border: 'none', borderRadius: '6px', fontSize: '16px',
+                  fontFamily: 'monospace', fontWeight: 'bold',
+                  cursor: userName.trim() ? 'pointer' : 'not-allowed',
+                }}>CREATE GAME</button>
+              <button
+                disabled={!userName.trim()}
+                onClick={() => setScreen('join')}
+                style={{
+                  padding: '14px', background: 'transparent',
+                  color: userName.trim() ? '#00ff88' : '#00ff8844',
+                  border: `2px solid ${userName.trim() ? '#00ff88' : '#00ff8844'}`,
+                  borderRadius: '6px', fontSize: '16px',
+                  fontFamily: 'monospace', fontWeight: 'bold',
+                  cursor: userName.trim() ? 'pointer' : 'not-allowed',
+                }}>JOIN GAME</button>
               <button onClick={() => setScreen('leaderboard')} style={{
                 padding: '14px', background: 'transparent', color: '#888',
                 border: '2px solid #444', borderRadius: '6px', fontSize: '16px',
@@ -70,7 +98,8 @@ function App() {
       <div style={menuStyle}>
         <div style={menuBoxStyle}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '20px' }}>WAITING FOR OPPONENT</h2>
+            <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '8px' }}>WAITING FOR OPPONENT</h2>
+            <p style={{ color: '#00ff88aa', fontSize: '12px', marginBottom: '20px' }}>Playing as: {userName}</p>
             <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Share this code with your friend:</p>
             <div style={{
               background: '#1a1a3e', border: '2px solid #00ff88', borderRadius: '8px',
@@ -101,7 +130,8 @@ function App() {
       <div style={menuStyle}>
         <div style={menuBoxStyle}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: '#ff4466', fontSize: '24px', marginBottom: '20px' }}>JOIN GAME</h2>
+            <h2 style={{ color: '#ff4466', fontSize: '24px', marginBottom: '8px' }}>JOIN GAME</h2>
+            <p style={{ color: '#ff4466aa', fontSize: '12px', marginBottom: '20px' }}>Playing as: {userName}</p>
             <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Enter the match code:</p>
             <input
               type="text"
