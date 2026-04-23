@@ -3,7 +3,7 @@
 class Player {
     // initial plan is to initiate player object with pre-defined socket_id, x_pos, y_pos, and health. 
     // I'm fine with with changing this if we want
-    constructor(socketId, x, y, maxHealth = 1, userName = "HAL9000", facing) {
+    constructor(socketId, x, y, facing, maxHealth = 1, userName = "HAL9000") {
         this.id = socketId;
         this.x = x;
         this.y = y;
@@ -11,7 +11,7 @@ class Player {
         this.score = 0;
         this.currentInput = {left: false, right: false, shoot: false};
         this.userName = userName;
-        this.facing = facing // If facing 'down' projectiles fire 'down' (y-) If facing 'up' projectiles fire 'up' (y+)
+        this.facing = facing; // If facing 'down' projectiles fire 'down' (y-) If facing 'up' projectiles fire 'up' (y+)
     }
     
     takeDamage(){

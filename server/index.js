@@ -1,79 +1,63 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const Player = require('./game/Player.js');
-const GameRomm = require('.game/GameRoom.js')
-
+const RoomManager = require('./game/RoomManager.js')
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
-// on connection, new Player(socket.id); playerList.set(socket.id, player)
-// on disconnect, playerList.delete(socket.id)
-const playerList = new Map();
-const allowedInput = ['left', 'right', 'shoot'];
 
+
+const allowedInput = ['left', 'right', 'shoot'];
+ 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' }});
-
 app.get('/', (req, res) => {
   res.send('Space Arcade server is running');
 });
+//create room manager
+const roomManager = new RoomManager();
 
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
-  const player = new Player(socket.id);
-  playerList.set(socket.id, player);
+
+  //create room
+  socket.on('create_game', ({ userName }) => {
+    const room = roomManager.createRoom();
+    const { success, slot } = room.addPlayer(socket.id, userName);
+    if (success) {
+      socket.join(room.id);
+      socket.emit('game_created', {matchCode: room.id, slot})
+    }
+  });
+  //join room
+  socket.on('join_game', ({ matchCode, userName }) => {
+    const room = roomManager.findRoom(matchCode);
+    if (!room) {
+      socket.emit('join_failed', {reason: 'game_not_found'});
+      return;
+    }
+    const { success, slot, reason } = room.addPlayer(socket.id, userName);
+
+    if (!success) {
+      socket.emit('join_failed', { reason });
+      return;
+    }
+    socket.join(room.id);
+    socket.emit('game_joined', { matchCode: room.id, slot });
+  });
+  
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`);
-    playerList.delete(socket.id);
   });
-
-  socket.on('input', (data) => {
-    //console.log(`input from ${socket.id}:`, data);
-    const player = playerList.get(socket.id);
-    if (!player) return;
-
-    // do nothing if valid key from list isn't pressed
-    if (!allowedInput.includes(data.key)) return;
-    if (data.state !== 'down' && data.state !== 'up') return;
-
-    if (data.key === "left") player.currentInput.left = (data.state === "down");
-    else if (data.key === "right") player.currentInput.right = (data.state === "down");
-    else if (data.key === "shoot") player.currentInput.shoot = (data.state === "down");
-    //console.log(`player state:`, player.currentInput);
-  });
-
   
-});
+  socket.on('input', (data) => {
+    console.log(`input from ${socket.id}:`, data);
+  });
 
+// TODO PR2:
 // setting intervals for updating server tick snapshots
 // https://javascript.info/settimeout-setinterval#setinterval
-
-function tick() {
-  
-  // move players left and right
-  // TODO: Smooth out player movement if possible
-  for (const player of playerList.values()) {
-    if (player.currentInput.left) player.x -= 10;
-    if (player.currentInput.right) player.x += 10;
-  }
-
-  // create snapshot
-  const snapshot = {
-    players: Array.from(playerList.values()).map(p => ({
-      id: p.id,
-      x: p.x,
-      y: p.y,
-      health: p.health,
-      score: p.score
-    }))
-  };
-
-  //send broadcast to client
-  io.emit('state', snapshot);
-}
-
-setInterval(tick, 30) // server tick every 30 milliseconds
+});
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
