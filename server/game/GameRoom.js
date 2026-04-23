@@ -13,7 +13,7 @@ class GameRoom {
         this.playerMap = {player1: null, player2: null}; // two players, map of socket id, userName, ship state, and player score
         this.asteroids = []; // list of asteroids and their positions in arena
         this.projectiles = []; // list of projectiles and their positions in arena
-        this.phase = "waiting";   // waiting for player 2, phase 1, phase 2, end
+        this.phase = "waiting";   // waiting for player 2, phase 1, phase 2, ended
         this.createdTime = Date.now();
     }
     isEmpty() {
@@ -23,7 +23,13 @@ class GameRoom {
     isFull() {
     return this.playerMap.player1 !== null && this.playerMap.player2 !== null;
     }
-
+    // get slot for removing player
+    getSlot(){
+        if (this.playerMap.player1.id === socketId)
+            return 'player1';
+        if (this.playerMap.player2.id === socketId)
+            return 'player2';
+    }
     addPlayer(socketId, userName){
         // check if full
         if (this.isFull()) {
@@ -45,7 +51,7 @@ class GameRoom {
         const facing = slot === 'player1' ? 'down' : 'up';
 
         // create player in game (1 health for now)
-        const player = new Player(socketId, x, y, 1, userName, facing);
+        const player = new Player(socketId, x, y, facing, userName = "HAL9000", maxHealth = 1);
         
         // add to player map
         this.playerMap[slot] = player;
@@ -57,6 +63,22 @@ class GameRoom {
 
         return {success: true, slot };
     }
+
+    removePlayer(socketId) {
+        const slot = this.getSlot(socketId);
+        if (slot === null) {
+        return { success: false, reason: 'slot_not_in_room' };
+        }
+        this.playerMap[slot] = null;
+
+        if (this.phase === "phase1" || this.phase === "phase2"){
+            this.phase = 'ended';
+        }
+        const isEmpty = this.isEmpty();
+
+        return {success: true, slot, isEmpty};
+        };
+        
 };
 
 module.exports = GameRoom;
