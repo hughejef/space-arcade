@@ -3,7 +3,7 @@
 class Player {
     // initial plan is to initiate player object with pre-defined socket_id, x_pos, y_pos, and health. 
     // I'm fine with with changing this if we want
-    constructor(socketId, x, y, facing, maxHealth = 1, userName = "HAL9000") {
+    constructor(socketId, x, y, facing, userName = "HAL9000", maxHealth = 1) {
         this.id = socketId;
         this.x = x;
         this.y = y;

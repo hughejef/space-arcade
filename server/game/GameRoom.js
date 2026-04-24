@@ -9,7 +9,7 @@ class GameRoom {
     // initial plan is to initiate player object with pre-defined socketId, x_pos, y_pos, and health. 
     // I'm fine with with changing this if we want
     constructor(id) {
-        this.id = id; // id will be 5 digit alphanumeric room code
+        this.id = id; // id will be 4 digit alphanumeric room code
         this.playerMap = {player1: null, player2: null}; // two players, map of socket id, userName, ship state, and player score
         this.asteroids = []; // list of asteroids and their positions in arena
         this.projectiles = []; // list of projectiles and their positions in arena
@@ -51,7 +51,7 @@ class GameRoom {
         const facing = slot === 'player1' ? 'down' : 'up';
 
         // create player in game (1 health for now)
-        const player = new Player(socketId, x, y, facing, userName = "HAL9000", maxHealth = 1);
+        const player = new Player(socketId, x, y, facing, userName);
         
         // add to player map
         this.playerMap[slot] = player;
