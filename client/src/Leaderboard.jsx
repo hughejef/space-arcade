@@ -31,10 +31,8 @@ function Leaderboard({ onBack }) {
   const [loading, setLoading] = useState(false)
 
   // load scores whenever the period changes
-  // eventually this will fetch from the server, for now we use mock data
   useEffect(() => {
     setLoading(true)
-    // simulate a quick load delay so the UI feels real
     const timer = setTimeout(() => {
       setScores(MOCK_LEADERBOARD[period] || [])
       setLoading(false)
@@ -62,7 +60,34 @@ function Leaderboard({ onBack }) {
         fontFamily: 'monospace',
       }}>
         <div style={{ textAlign: 'center', width: '90%' }}>
-          <h2 style={{ color: '#ffff00', fontSize: '32px', marginBottom: '20px' }}>LEADERBOARD</h2>
+          <h2 style={{ color: '#ffff00', fontSize: '32px', marginBottom: '16px' }}>LEADERBOARD</h2>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '20px',
+          }}>
+            {['daily', 'weekly', 'monthly'].map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                style={{
+                  padding: '8px 20px',
+                  background: period === p ? '#ffff00' : 'transparent',
+                  color: period === p ? '#0a0a2e' : '#ffff00',
+                  border: '2px solid #ffff00',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  fontWeight: period === p ? 'bold' : 'normal',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                }}>
+                {p}
+              </button>
+            ))}
+          </div>
 
           {loading && (
             <p style={{ color: '#888', fontSize: '14px' }}>Loading scores...</p>
