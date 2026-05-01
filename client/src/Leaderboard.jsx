@@ -25,6 +25,22 @@ const MOCK_LEADERBOARD = {
   ],
 }
 
+// pick a color based on the player's rank
+function getRankColor(rank) {
+  if (rank === 1) return '#ffd700'
+  if (rank === 2) return '#c0c0c0'
+  if (rank === 3) return '#cd7f32'
+  return '#ffffff'
+}
+
+// format an ISO timestamp into something readable
+function formatDate(timestamp) {
+  const date = new Date(timestamp)
+  const month = date.toLocaleString('en-US', { month: 'short' })
+  const day = date.getDate()
+  return `${month} ${day}`
+}
+
 function Leaderboard({ onBack }) {
   const [period, setPeriod] = useState('daily')
   const [scores, setScores] = useState([])
@@ -98,17 +114,46 @@ function Leaderboard({ onBack }) {
           )}
 
           {!loading && scores.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: '#1a1a3e',
+              border: '1px solid #4444ff',
+              borderRadius: '8px',
+              padding: '16px 20px',
+              marginTop: '10px',
+            }}>
+              {/* column headers for the score list */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '50px 1fr 100px 80px',
+                padding: '6px 12px',
+                color: '#888',
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                borderBottom: '1px solid #4444ff44',
+                marginBottom: '6px',
+              }}>
+                <span style={{ textAlign: 'left' }}>Rank</span>
+                <span style={{ textAlign: 'left' }}>Player</span>
+                <span style={{ textAlign: 'right' }}>Score</span>
+                <span style={{ textAlign: 'right' }}>Date</span>
+              </div>
+
               {scores.map((entry) => (
                 <div key={entry.rank} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 16px',
-                  color: '#fff',
+                  display: 'grid',
+                  gridTemplateColumns: '50px 1fr 100px 80px',
+                  padding: '8px 12px',
                   fontSize: '14px',
+                  color: getRankColor(entry.rank),
+                  fontWeight: entry.rank <= 3 ? 'bold' : 'normal',
+                  borderBottom: '1px solid #4444ff22',
                 }}>
-                  <span>#{entry.rank} {entry.userName}</span>
-                  <span>{entry.score}</span>
+                  <span style={{ textAlign: 'left' }}>#{entry.rank}</span>
+                  <span style={{ textAlign: 'left' }}>{entry.userName}</span>
+                  <span style={{ textAlign: 'right' }}>{entry.score.toLocaleString()}</span>
+                  <span style={{ textAlign: 'right', color: '#888', fontWeight: 'normal' }}>
+                    {formatDate(entry.timestamp)}
+                  </span>
                 </div>
               ))}
             </div>
