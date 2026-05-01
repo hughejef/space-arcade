@@ -25,7 +25,14 @@ const MOCK_LEADERBOARD = {
   ],
 }
 
+// flag to switch between mock data and live API
+// flip this to true once Jeffrey's leaderboard backend is hooked up
+const USE_MOCK_DATA = true
+
+const API_URL = 'http://localhost:3001'
+
 // pick a color based on the player's rank
+// gold for 1st, silver for 2nd, bronze for 3rd, white for the rest
 function getRankColor(rank) {
   if (rank === 1) return '#ffd700'
   if (rank === 2) return '#c0c0c0'
@@ -34,6 +41,7 @@ function getRankColor(rank) {
 }
 
 // format an ISO timestamp into something readable
+// example: "2026-04-30T14:22:00Z" becomes "Apr 30"
 function formatDate(timestamp) {
   const date = new Date(timestamp)
   const month = date.toLocaleString('en-US', { month: 'short' })
@@ -41,19 +49,59 @@ function formatDate(timestamp) {
   return `${month} ${day}`
 }
 
+// fetch scores for a given period from either the mock data or the real API
+// returns a promise that resolves to an array of score entries
+async function fetchScores(period) {
+  if (USE_MOCK_DATA) {
+    // simulate a small delay so the loading state is visible
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    return MOCK_LEADERBOARD[period] || []
+  }
+
+  // real API call once backend is ready
+  const response = await fetch(`${API_URL}/leaderboard?period=${period}`)
+  if (!response.ok) {
+    throw new Error(`Server returned ${response.status}`)
+  }
+  return await response.json()
+}
+
 function Leaderboard({ onBack }) {
   const [period, setPeriod] = useState('daily')
   const [scores, setScores] = useState([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   // load scores whenever the period changes
   useEffect(() => {
-    setLoading(true)
-    const timer = setTimeout(() => {
-      setScores(MOCK_LEADERBOARD[period] || [])
-      setLoading(false)
-    }, 200)
-    return () => clearTimeout(timer)
+    let cancelled = false
+
+    async function loadScores() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await fetchScores(period)
+        if (!cancelled) {
+          setScores(data)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError('Could not load leaderboard. Please try again.')
+          setScores([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadScores()
+
+    // cleanup so we don't update state if the component unmounts mid-fetch
+    return () => {
+      cancelled = true
+    }
   }, [period])
 
   return (
@@ -109,11 +157,15 @@ function Leaderboard({ onBack }) {
             <p style={{ color: '#888', fontSize: '14px' }}>Loading scores...</p>
           )}
 
-          {!loading && scores.length === 0 && (
+          {!loading && error && (
+            <p style={{ color: '#ff4466', fontSize: '14px' }}>{error}</p>
+          )}
+
+          {!loading && !error && scores.length === 0 && (
             <p style={{ color: '#888', fontSize: '14px' }}>No scores yet for this period</p>
           )}
 
-          {!loading && scores.length > 0 && (
+          {!loading && !error && scores.length > 0 && (
             <div style={{
               background: '#1a1a3e',
               border: '1px solid #4444ff',
