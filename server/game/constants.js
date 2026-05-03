@@ -14,4 +14,10 @@ const SHIP = {
 
 };
 
-module.exports = { ARENA, SPAWN, SHIP };
+const TICK = {
+    RATE: 30,
+    MS: 1000 / 30
+};
+
+
+module.exports = { ARENA, SPAWN, SHIP , TICK};

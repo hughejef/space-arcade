@@ -24,11 +24,12 @@ class GameRoom {
     return this.playerMap.player1 !== null && this.playerMap.player2 !== null;
     }
     // get slot for removing player
-    getSlot(){
-        if (this.playerMap.player1.id === socketId)
+    getSlot(socketId){
+        if (this.playerMap.player1 && this.playerMap.player1.id === socketId) // added this.playerMap.player1/2 check because getSlot is failing when no player in slot
             return 'player1';
-        if (this.playerMap.player2.id === socketId)
+        if (this.playerMap.player2 && this.playerMap.player2.id === socketId)
             return 'player2';
+        return null;
     }
     addPlayer(socketId, userName){
         // check if full
@@ -78,6 +79,11 @@ class GameRoom {
 
         return {success: true, slot, isEmpty};
         };
+
+    tick() {
+        // Update Players, Asteroids, Projectiles, Phase
+        console.log(`tick: ${this.id}`);
+    }
         
 };
 

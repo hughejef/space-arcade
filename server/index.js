@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const RoomManager = require('./game/RoomManager.js')
+const { TICK } = require('./game/constants.js');
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
 
 
@@ -46,17 +47,23 @@ io.on('connection', (socket) => {
     socket.emit('game_joined', { matchCode: room.id, slot });
   });
   
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-  });
+  socket.on('disconnecting', () => {
+    console.log(`Client disconnecting: ${socket.id}`);
+    for (const code of socket.rooms) {
+        if (code === socket.id) continue; // skip the autop-room socket.io creates
+        const room = roomManager.findRoom(code);
+        if (!room) continue;
+        room.removePlayer(socket.id);
+        if (room.isEmpty()) {
+            roomManager.deleteRoom(code);
+        }
+    }
+});
   
   socket.on('input', (data) => {
     console.log(`input from ${socket.id}:`, data);
   });
 
-// TODO PR2:
-// setting intervals for updating server tick snapshots
-// https://javascript.info/settimeout-setinterval#setinterval
 });
 
 const PORT = process.env.PORT || 3001;
