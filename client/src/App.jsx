@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
+import Leaderboard from './Leaderboard'
 
 const menuStyle = {
   display: 'flex',
@@ -228,21 +229,7 @@ function App() {
   }
 
   if (screen === 'leaderboard') {
-    return (
-      <div style={menuStyle}>
-        <div style={menuBoxStyle}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: '#ffff00', fontSize: '24px', marginBottom: '20px' }}>LEADERBOARD</h2>
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>Coming soon...</p>
-            <button onClick={() => setScreen('menu')} style={{
-              padding: '10px 30px', background: 'transparent', color: '#888',
-              border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
-              fontFamily: 'monospace', cursor: 'pointer',
-            }}>BACK</button>
-          </div>
-        </div>
-      </div>
-    )
+    return <Leaderboard onBack={() => setScreen('menu')} />
   }
 
   if (screen === 'gameOver') {
