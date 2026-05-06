@@ -9,7 +9,7 @@ let matchCode = null; // collect match code to pass to player 2 join game
 
 socketA.on('connect', () => {
   console.log('Player 1 connected as', socketA.id);
-  socketA.emit('create_game', {userName: 'JEFF'});
+  socketA.emit('create_game', 'JEFF');
 });
 
 socketA.on('game_created', (response) => {
@@ -25,8 +25,8 @@ socketA.on('game_created', (response) => {
 });
 
 // when created room is created, start listening for game state broadcasts from RoomManager
-socketA.on('state', (state) => {
-  console.log('Player 1 state received: ', state);
+socketA.on('gameState', (gameState) => {
+  // console.log('Player 1 gameState received: ', gameState);
 });
 
 //PLAYER 2
@@ -36,19 +36,31 @@ function startPlayer2() {
 
   socketB.on('connect', () => {
     console.log('Player 2 connected as ', socketB.id);
-    socketB.emit('join_game', {matchCode, userName: 'PRABHASH'});
+    socketB.emit('join_game', matchCode, 'PRABHASH');
   });
 
   socketB.on('game_joined', (response) => {
-    console.log('player 2 joined room: ', response.matchCode, 'slot: ', response.slot);
+    console.log('player 2 joined room: ', response.matchCode, 'slot: ', response.slot)
+    
+    setTimeout(() => {
+    console.log('Simulating Player 1 left DOWN');
+    socketA.emit('input', { key: 'left', state: 'down' });
+    setTimeout(() => {
+        console.log('Simulating Player 1 left UP');
+        socketA.emit('input', { key: 'left', state: 'up' });
+    }, 500);
+}, 1000);
+
+
     setTimeout(() => {
       console.log('Player 2 disconnecting...');
       socketB.disconnect();
     }, 10000);
   })
 
-  socketB.on('state', (state) => {
-  console.log('Player 2 state received: ', state);
+  socketB.on('gameState', (gameState) => {
+  //console.log('Player 2 gameState received: ', gameState);
+
 });
 
 }
