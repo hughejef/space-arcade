@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
   res.send('Space Arcade server is running');
 });
 //create room manager
-const roomManager = new RoomManager();
+const roomManager = new RoomManager(io);
 
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);

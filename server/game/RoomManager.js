@@ -6,9 +6,12 @@ const GameRoom = require('./GameRoom');
 const { TICK } = require('./constants');
 
 class RoomManager {
-    constructor() {
-        this.roomMap = new Map();
-        this.tickIntervalId = null;
+    constructor(io) {
+    console.log('RoomManager constructor called with io:', io ? 'defined' : 'UNDEFINED');
+    this.roomMap = new Map();
+    this.tickIntervalId = null;
+    this.io = io;
+    setInterval(() => this.oneTick(), TICK.MILLISECS);
     }
 
     generateCode() {
@@ -21,7 +24,6 @@ class RoomManager {
         const code = this.generateCode();
         const room = new GameRoom(code);
         this.roomMap.set(code, room);
-        this.startTickLoop();
         return room;
     }
 
@@ -40,31 +42,19 @@ class RoomManager {
 
     deleteRoom(code) {
         this.roomMap.delete(code);
-        if (this.roomMap.size === 0) {
-            this.stopTickLoop();
         }
-    }
 
     oneTick(){
-    for (const room of this.roomMap.values()) {
-        room.tick();  // GameRoom.tick() will console.log for now
-    }
-    }
+        //iterate through rooms
+        for (const room of this.roomMap.values()){
+            //call room.tick() on active rooms
+            if (room.phase === "phase1" || room.phase === "phase2"){
+                // broadcast room states
 
-
-    startTickLoop() {
-        if (this.tickIntervalId === null) {
-            this.tickIntervalId = setInterval(() => this.oneTick(), TICK.MS);
+                const roomData = room.tick();
+                this.io.to(room.id).emit('state', roomData);
+            }
         }
-    }
-
-    // https://stackoverflow.com/questions/109086/stop-setinterval-call-in-javascript
-    stopTickLoop() {
-        if (this.tickIntervalId !== null) {
-            clearInterval(this.tickIntervalId);
-            this.tickIntervalId = null;
-        }
-
     }
 }
 
