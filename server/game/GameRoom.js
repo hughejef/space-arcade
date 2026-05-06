@@ -82,7 +82,14 @@ class GameRoom {
 
     tick() {
         // Update Players, Asteroids, Projectiles, Phase
-        console.log(`tick: ${this.id}`);
+        
+        const gameState = {phase: this.phase,
+            players: this.playerMap,
+            asteroids: this.asteroids,
+            projectiles: this.projectiles
+        };
+        console.log('tick: ', gameState);
+        return gameState;
     }
         
 };

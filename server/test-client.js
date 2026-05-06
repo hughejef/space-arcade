@@ -21,7 +21,12 @@ socketA.on('game_created', (response) => {
   setTimeout(() => {
     console.log('Player 1 disconnecting... ');
     socketA.disconnect();
-  }, 5000);
+  }, 15000);
+});
+
+// when created room is created, start listening for game state broadcasts from RoomManager
+socketA.on('state', (state) => {
+  console.log('Player 1 state received: ', state);
 });
 
 //PLAYER 2
@@ -39,8 +44,11 @@ function startPlayer2() {
     setTimeout(() => {
       console.log('Player 2 disconnecting...');
       socketB.disconnect();
-    }, 2000);
+    }, 10000);
   })
 
+  socketB.on('state', (state) => {
+  console.log('Player 2 state received: ', state);
+});
 
 }
