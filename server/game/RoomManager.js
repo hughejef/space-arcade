@@ -52,7 +52,7 @@ class RoomManager {
                 // broadcast room states
 
                 const roomData = room.tick();
-                this.io.to(room.id).emit('state', roomData);
+                this.io.to(room.id).emit('gameState', roomData);
             }
         }
     }
