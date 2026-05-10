@@ -160,8 +160,6 @@ function GameCanvas({ slot }) {
     let phaseBanner = null
     let previousPhase = 'waiting'
 
-    // hit flash state per player - lifetime ticks down each frame so we can flash red briefly
-    // when a player loses health
     let hitFlashes = {
       player1: { lifetime: 0, maxLifetime: 15 },
       player2: { lifetime: 0, maxLifetime: 15 },
@@ -170,6 +168,10 @@ function GameCanvas({ slot }) {
       player1: 1,
       player2: 1,
     }
+
+    // ship explosions are bigger than asteroid hits with multiple rings and particles
+    // each explosion has a position, lifetime, and an array of particles flying outward
+    let shipExplosions = []
 
     s.on('gameState', (state) => {
       const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
@@ -209,16 +211,44 @@ function GameCanvas({ slot }) {
           lastUpdate: now,
         }
 
-        // detect health drop and trigger hit flash
         const newHealth = newPlayer.health !== undefined ? newPlayer.health : 1
         if (newHealth < previousHealth[slot]) {
           hitFlashes[slot].lifetime = hitFlashes[slot].maxLifetime
         }
+
+        // detect ship destruction (health dropping to 0) and spawn an explosion
+        if (newHealth <= 0 && previousHealth[slot] > 0) {
+          spawnShipExplosion(newPlayer.x + 20, newPlayer.y + 22, slot === 'player1' ? '#00ff88' : '#ff4466')
+        }
+
         previousHealth[slot] = newHealth
       })
 
       gameState = state
     })
+
+    // create an explosion at a position with particles flying in random directions
+    function spawnShipExplosion(x, y, color) {
+      const particles = []
+      for (let i = 0; i < 16; i++) {
+        const angle = (Math.PI * 2 * i) / 16 + Math.random() * 0.4
+        const speed = 2 + Math.random() * 3
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+        })
+      }
+      shipExplosions.push({
+        x: x,
+        y: y,
+        color: color,
+        particles: particles,
+        lifetime: 45,
+        maxLifetime: 45,
+      })
+    }
 
     const keys = {
       left: false,
@@ -342,12 +372,53 @@ function GameCanvas({ slot }) {
       ctx.shadowBlur = 0
     }
 
-    // draw a red flash overlay on top of a ship to indicate a hit
-    // opacity fades as the lifetime ticks down
     function drawHitFlash(x, y, w, h, lifetime, maxLifetime) {
       const opacity = lifetime / maxLifetime
       ctx.fillStyle = `rgba(255, 50, 50, ${opacity * 0.7})`
       ctx.fillRect(x - 4, y - 4, w + 8, h + 8)
+    }
+
+    // draw a ship explosion with multiple expanding rings and outward-flying particles
+    // particles update positions each frame based on their velocity
+    function drawShipExplosion(explosion) {
+      const progress = 1 - (explosion.lifetime / explosion.maxLifetime)
+      const opacity = explosion.lifetime / explosion.maxLifetime
+
+      // outer shockwave ring (white)
+      const outerRadius = 10 + progress * 50
+      ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.8})`
+      ctx.lineWidth = 4
+      ctx.beginPath()
+      ctx.arc(explosion.x, explosion.y, outerRadius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // middle ring (player color)
+      const middleRadius = 5 + progress * 35
+      const colorRgb = explosion.color === '#00ff88' ? '0, 255, 136' : '255, 68, 102'
+      ctx.strokeStyle = `rgba(${colorRgb}, ${opacity})`
+      ctx.lineWidth = 5
+      ctx.beginPath()
+      ctx.arc(explosion.x, explosion.y, middleRadius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // bright core
+      ctx.fillStyle = `rgba(255, 255, 200, ${opacity * 0.9})`
+      ctx.beginPath()
+      ctx.arc(explosion.x, explosion.y, 8 * opacity, 0, Math.PI * 2)
+      ctx.fill()
+
+      // update and draw particles
+      explosion.particles.forEach((particle) => {
+        particle.x += particle.vx
+        particle.y += particle.vy
+        // simulate slight gravity/friction
+        particle.vy += 0.05
+        particle.vx *= 0.98
+        particle.vy *= 0.98
+
+        ctx.fillStyle = `rgba(${colorRgb}, ${opacity})`
+        ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4)
+      })
     }
 
     function drawAsteroid(a) {
@@ -489,24 +560,29 @@ function GameCanvas({ slot }) {
       const p1 = gameState.players.player1
       const p2 = gameState.players.player2
 
-      ctx.font = '11px monospace'
-      ctx.textAlign = 'center'
-      ctx.fillStyle = '#00ff88'
-      ctx.fillText('P1', p1Pos.x + shipWidth / 2, p1Pos.y + 10)
-      ctx.fillStyle = '#ff4466'
-      ctx.fillText('P2', p2Pos.x + shipWidth / 2, p2Pos.y + shipHeight - 1)
-
-      drawShip(p1Pos.x, p1Pos.y, shipWidth, shipHeight, '#00ff88', false)
-      drawShip(p2Pos.x, p2Pos.y, shipWidth, shipHeight, '#ff4466', true)
-
-      // draw hit flashes on top of ships if active and tick down their lifetime
-      if (hitFlashes.player1.lifetime > 0) {
-        drawHitFlash(p1Pos.x, p1Pos.y, shipWidth, shipHeight, hitFlashes.player1.lifetime, hitFlashes.player1.maxLifetime)
-        hitFlashes.player1.lifetime -= 1
+      // only draw ships if they still have health
+      if ((p1.health !== undefined ? p1.health : 1) > 0) {
+        ctx.font = '11px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillStyle = '#00ff88'
+        ctx.fillText('P1', p1Pos.x + shipWidth / 2, p1Pos.y + 10)
+        drawShip(p1Pos.x, p1Pos.y, shipWidth, shipHeight, '#00ff88', false)
+        if (hitFlashes.player1.lifetime > 0) {
+          drawHitFlash(p1Pos.x, p1Pos.y, shipWidth, shipHeight, hitFlashes.player1.lifetime, hitFlashes.player1.maxLifetime)
+          hitFlashes.player1.lifetime -= 1
+        }
       }
-      if (hitFlashes.player2.lifetime > 0) {
-        drawHitFlash(p2Pos.x, p2Pos.y, shipWidth, shipHeight, hitFlashes.player2.lifetime, hitFlashes.player2.maxLifetime)
-        hitFlashes.player2.lifetime -= 1
+
+      if ((p2.health !== undefined ? p2.health : 1) > 0) {
+        ctx.font = '11px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillStyle = '#ff4466'
+        ctx.fillText('P2', p2Pos.x + shipWidth / 2, p2Pos.y + shipHeight - 1)
+        drawShip(p2Pos.x, p2Pos.y, shipWidth, shipHeight, '#ff4466', true)
+        if (hitFlashes.player2.lifetime > 0) {
+          drawHitFlash(p2Pos.x, p2Pos.y, shipWidth, shipHeight, hitFlashes.player2.lifetime, hitFlashes.player2.maxLifetime)
+          hitFlashes.player2.lifetime -= 1
+        }
       }
 
       gameState.asteroids.forEach((a) => {
@@ -521,6 +597,16 @@ function GameCanvas({ slot }) {
         if (effect.lifetime > 0) {
           drawHitEffect(effect)
           effect.lifetime -= 1
+          return true
+        }
+        return false
+      })
+
+      // tick down ship explosions and remove dead ones
+      shipExplosions = shipExplosions.filter((explosion) => {
+        if (explosion.lifetime > 0) {
+          drawShipExplosion(explosion)
+          explosion.lifetime -= 1
           return true
         }
         return false
