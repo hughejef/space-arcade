@@ -274,13 +274,35 @@ function GameCanvas({ slot }) {
       ctx.strokeRect(a.x, a.y, 60, 22)
     }
 
+    // draw a laser projectile with glow and a fading trail
+    // owner determines the color: player1 shots are green, player2 shots are red
     function drawProjectile(p) {
-      ctx.shadowColor = p.color || '#ffffff'
-      ctx.shadowBlur = 8
-      ctx.fillStyle = p.color || '#ffffff'
-      ctx.fillRect(p.x, p.y, 4, 10)
+      // player1 shoots downward, player2 shoots upward
+      // figure out the trail direction based on who fired it
+      const color = p.color || (p.owner === 'player1' ? '#00ff88' : '#ff4466')
+      const trailDirection = p.owner === 'player1' ? -1 : 1
+
+      // outer glow effect
+      ctx.shadowColor = color
+      ctx.shadowBlur = 12
+      ctx.fillStyle = color
+      ctx.fillRect(p.x - 1, p.y, 6, 12)
+
+      // brighter core
+      ctx.shadowBlur = 6
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(p.x, p.y + 2, 4, 8)
+
       ctx.shadowBlur = 0
       ctx.shadowColor = 'transparent'
+
+      // fading trail behind the projectile
+      ctx.fillStyle = color + 'aa'
+      ctx.fillRect(p.x, p.y + (trailDirection * 8), 4, 8)
+      ctx.fillStyle = color + '66'
+      ctx.fillRect(p.x, p.y + (trailDirection * 16), 4, 8)
+      ctx.fillStyle = color + '33'
+      ctx.fillRect(p.x, p.y + (trailDirection * 24), 4, 8)
     }
 
     function draw() {
