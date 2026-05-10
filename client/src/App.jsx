@@ -150,9 +150,6 @@ function GameCanvas({ slot }) {
       projectiles: [],
     }
 
-    // interpolation state for smooth ship movement
-    // we remember the previous and current positions plus the time we received them
-    // then lerp between them based on how much time has passed since the last update
     let interpolation = {
       player1: { prevX: 380, prevY: 40, currX: 380, currY: 40, lastUpdate: Date.now() },
       player2: { prevX: 380, prevY: 516, currX: 380, currY: 516, lastUpdate: Date.now() },
@@ -162,6 +159,17 @@ function GameCanvas({ slot }) {
     let previousAsteroidIds = new Set()
     let phaseBanner = null
     let previousPhase = 'waiting'
+
+    // hit flash state per player - lifetime ticks down each frame so we can flash red briefly
+    // when a player loses health
+    let hitFlashes = {
+      player1: { lifetime: 0, maxLifetime: 15 },
+      player2: { lifetime: 0, maxLifetime: 15 },
+    }
+    let previousHealth = {
+      player1: 1,
+      player2: 1,
+    }
 
     s.on('gameState', (state) => {
       const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
@@ -189,8 +197,6 @@ function GameCanvas({ slot }) {
         previousPhase = state.phase
       }
 
-      // update interpolation targets when a new gameState arrives
-      // current position becomes the previous, server position becomes the new current
       const now = Date.now()
       ;['player1', 'player2'].forEach((slot) => {
         const prev = interpolation[slot]
@@ -202,6 +208,13 @@ function GameCanvas({ slot }) {
           currY: newPlayer.y,
           lastUpdate: now,
         }
+
+        // detect health drop and trigger hit flash
+        const newHealth = newPlayer.health !== undefined ? newPlayer.health : 1
+        if (newHealth < previousHealth[slot]) {
+          hitFlashes[slot].lifetime = hitFlashes[slot].maxLifetime
+        }
+        previousHealth[slot] = newHealth
       })
 
       gameState = state
@@ -256,12 +269,9 @@ function GameCanvas({ slot }) {
     const shipWidth = 40
     const shipHeight = 44
 
-    // calculate the smoothly interpolated position for a given player
-    // returns x,y based on how far we are between the previous and current server positions
     function getInterpolatedPosition(slot) {
       const interp = interpolation[slot]
       const elapsed = Date.now() - interp.lastUpdate
-      // server tick is 30ms, so we lerp over 30ms of elapsed time
       const t = Math.min(1, elapsed / 30)
       return {
         x: interp.prevX + (interp.currX - interp.prevX) * t,
@@ -330,6 +340,14 @@ function GameCanvas({ slot }) {
 
       ctx.shadowColor = 'transparent'
       ctx.shadowBlur = 0
+    }
+
+    // draw a red flash overlay on top of a ship to indicate a hit
+    // opacity fades as the lifetime ticks down
+    function drawHitFlash(x, y, w, h, lifetime, maxLifetime) {
+      const opacity = lifetime / maxLifetime
+      ctx.fillStyle = `rgba(255, 50, 50, ${opacity * 0.7})`
+      ctx.fillRect(x - 4, y - 4, w + 8, h + 8)
     }
 
     function drawAsteroid(a) {
@@ -465,7 +483,6 @@ function GameCanvas({ slot }) {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
-      // get smoothly interpolated positions for both ships
       const p1Pos = getInterpolatedPosition('player1')
       const p2Pos = getInterpolatedPosition('player2')
 
@@ -481,6 +498,16 @@ function GameCanvas({ slot }) {
 
       drawShip(p1Pos.x, p1Pos.y, shipWidth, shipHeight, '#00ff88', false)
       drawShip(p2Pos.x, p2Pos.y, shipWidth, shipHeight, '#ff4466', true)
+
+      // draw hit flashes on top of ships if active and tick down their lifetime
+      if (hitFlashes.player1.lifetime > 0) {
+        drawHitFlash(p1Pos.x, p1Pos.y, shipWidth, shipHeight, hitFlashes.player1.lifetime, hitFlashes.player1.maxLifetime)
+        hitFlashes.player1.lifetime -= 1
+      }
+      if (hitFlashes.player2.lifetime > 0) {
+        drawHitFlash(p2Pos.x, p2Pos.y, shipWidth, shipHeight, hitFlashes.player2.lifetime, hitFlashes.player2.maxLifetime)
+        hitFlashes.player2.lifetime -= 1
+      }
 
       gameState.asteroids.forEach((a) => {
         drawAsteroid(a)
