@@ -150,13 +150,31 @@ function GameCanvas({ slot }) {
       projectiles: [],
     }
 
+    let interpolation = {
+      player1: { prevX: 380, prevY: 40, currX: 380, currY: 40, lastUpdate: Date.now() },
+      player2: { prevX: 380, prevY: 516, currX: 380, currY: 516, lastUpdate: Date.now() },
+    }
+
     let hitEffects = []
     let previousAsteroidIds = new Set()
-
-    // phase banner state - shows a big text overlay when phases change
-    // banner has its own lifetime that ticks down each frame for fade out
     let phaseBanner = null
     let previousPhase = 'waiting'
+
+    let hitFlashes = {
+      player1: { lifetime: 0, maxLifetime: 15 },
+      player2: { lifetime: 0, maxLifetime: 15 },
+    }
+    let previousHealth = {
+      player1: 1,
+      player2: 1,
+    }
+
+    let shipExplosions = []
+
+    // wall bounce effects spawn when a projectile reverses horizontal direction
+    // we track each projectile's last x position and direction to detect bounces
+    let bounceEffects = []
+    let projectileTracking = new Map() // id -> { lastX, lastDirection }
 
     s.on('gameState', (state) => {
       const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
@@ -175,7 +193,32 @@ function GameCanvas({ slot }) {
 
       previousAsteroidIds = currentAsteroidIds
 
-      // detect phase change and trigger banner
+      // detect projectile bounces by tracking direction changes
+      // if a projectile is near the edge and its horizontal direction flipped, spawn a bounce effect
+      const newProjectileTracking = new Map()
+      state.projectiles.forEach((p) => {
+        const id = p.id || `${p.owner}-${p.spawnTime || ''}`
+        const tracked = projectileTracking.get(id)
+        if (tracked) {
+          const newDirection = p.x > tracked.lastX ? 1 : (p.x < tracked.lastX ? -1 : tracked.lastDirection)
+          if (tracked.lastDirection !== 0 && newDirection !== 0 && tracked.lastDirection !== newDirection) {
+            // direction flipped, must have bounced off a wall
+            // figure out which wall based on which edge the projectile is near
+            const bounceX = p.x < 50 ? 12 : (p.x > canvas.width - 50 ? canvas.width - 12 : p.x)
+            bounceEffects.push({
+              x: bounceX,
+              y: p.y,
+              lifetime: 12,
+              maxLifetime: 12,
+            })
+          }
+          newProjectileTracking.set(id, { lastX: p.x, lastDirection: newDirection })
+        } else {
+          newProjectileTracking.set(id, { lastX: p.x, lastDirection: 0 })
+        }
+      })
+      projectileTracking = newProjectileTracking
+
       if (state.phase !== previousPhase) {
         if (state.phase === 'phase1') {
           phaseBanner = { text: 'ASTEROID PHASE', color: '#ffaa00', lifetime: 120, maxLifetime: 120 }
@@ -185,8 +228,54 @@ function GameCanvas({ slot }) {
         previousPhase = state.phase
       }
 
+      const now = Date.now()
+      ;['player1', 'player2'].forEach((slot) => {
+        const prev = interpolation[slot]
+        const newPlayer = state.players[slot]
+        interpolation[slot] = {
+          prevX: prev.currX,
+          prevY: prev.currY,
+          currX: newPlayer.x,
+          currY: newPlayer.y,
+          lastUpdate: now,
+        }
+
+        const newHealth = newPlayer.health !== undefined ? newPlayer.health : 1
+        if (newHealth < previousHealth[slot]) {
+          hitFlashes[slot].lifetime = hitFlashes[slot].maxLifetime
+        }
+
+        if (newHealth <= 0 && previousHealth[slot] > 0) {
+          spawnShipExplosion(newPlayer.x + 20, newPlayer.y + 22, slot === 'player1' ? '#00ff88' : '#ff4466')
+        }
+
+        previousHealth[slot] = newHealth
+      })
+
       gameState = state
     })
+
+    function spawnShipExplosion(x, y, color) {
+      const particles = []
+      for (let i = 0; i < 16; i++) {
+        const angle = (Math.PI * 2 * i) / 16 + Math.random() * 0.4
+        const speed = 2 + Math.random() * 3
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+        })
+      }
+      shipExplosions.push({
+        x: x,
+        y: y,
+        color: color,
+        particles: particles,
+        lifetime: 45,
+        maxLifetime: 45,
+      })
+    }
 
     const keys = {
       left: false,
@@ -236,6 +325,16 @@ function GameCanvas({ slot }) {
 
     const shipWidth = 40
     const shipHeight = 44
+
+    function getInterpolatedPosition(slot) {
+      const interp = interpolation[slot]
+      const elapsed = Date.now() - interp.lastUpdate
+      const t = Math.min(1, elapsed / 30)
+      return {
+        x: interp.prevX + (interp.currX - interp.prevX) * t,
+        y: interp.prevY + (interp.currY - interp.prevY) * t,
+      }
+    }
 
     function drawShip(x, y, w, h, color, facingUp) {
       ctx.shadowColor = color
@@ -298,6 +397,68 @@ function GameCanvas({ slot }) {
 
       ctx.shadowColor = 'transparent'
       ctx.shadowBlur = 0
+    }
+
+    function drawHitFlash(x, y, w, h, lifetime, maxLifetime) {
+      const opacity = lifetime / maxLifetime
+      ctx.fillStyle = `rgba(255, 50, 50, ${opacity * 0.7})`
+      ctx.fillRect(x - 4, y - 4, w + 8, h + 8)
+    }
+
+    function drawShipExplosion(explosion) {
+      const progress = 1 - (explosion.lifetime / explosion.maxLifetime)
+      const opacity = explosion.lifetime / explosion.maxLifetime
+
+      const outerRadius = 10 + progress * 50
+      ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.8})`
+      ctx.lineWidth = 4
+      ctx.beginPath()
+      ctx.arc(explosion.x, explosion.y, outerRadius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      const middleRadius = 5 + progress * 35
+      const colorRgb = explosion.color === '#00ff88' ? '0, 255, 136' : '255, 68, 102'
+      ctx.strokeStyle = `rgba(${colorRgb}, ${opacity})`
+      ctx.lineWidth = 5
+      ctx.beginPath()
+      ctx.arc(explosion.x, explosion.y, middleRadius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      ctx.fillStyle = `rgba(255, 255, 200, ${opacity * 0.9})`
+      ctx.beginPath()
+      ctx.arc(explosion.x, explosion.y, 8 * opacity, 0, Math.PI * 2)
+      ctx.fill()
+
+      explosion.particles.forEach((particle) => {
+        particle.x += particle.vx
+        particle.y += particle.vy
+        particle.vy += 0.05
+        particle.vx *= 0.98
+        particle.vy *= 0.98
+
+        ctx.fillStyle = `rgba(${colorRgb}, ${opacity})`
+        ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4)
+      })
+    }
+
+    // draw a small spark effect at the wall bounce point
+    // a quick burst of bright sparks that fade fast since bounces happen often
+    function drawBounceEffect(effect) {
+      const opacity = effect.lifetime / effect.maxLifetime
+      const radius = (1 - opacity) * 12 + 4
+
+      // bright white center spark
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius * 0.4, 0, Math.PI * 2)
+      ctx.fill()
+
+      // yellow outer ring
+      ctx.strokeStyle = `rgba(255, 230, 100, ${opacity * 0.8})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2)
+      ctx.stroke()
     }
 
     function drawAsteroid(a) {
@@ -384,18 +545,14 @@ function GameCanvas({ slot }) {
       drawHealthBar(barX, y + 30, barWidth, health, maxHealth, color)
     }
 
-    // draw a big animated phase banner across the middle of the screen
-    // it scales up quickly at the start, holds, then fades out
     function drawPhaseBanner(banner) {
       const progress = 1 - (banner.lifetime / banner.maxLifetime)
 
-      // opacity stays full for first 70% of lifetime, then fades over the last 30%
       let opacity = 1
       if (progress > 0.7) {
         opacity = 1 - ((progress - 0.7) / 0.3)
       }
 
-      // scale ramps up quickly in the first 15% then stays at 1
       let scale = 1
       if (progress < 0.15) {
         scale = progress / 0.15
@@ -404,11 +561,9 @@ function GameCanvas({ slot }) {
       const fontSize = 64 * scale
       ctx.save()
 
-      // semi-transparent dark band across the canvas behind the text
       ctx.fillStyle = `rgba(10, 10, 46, ${opacity * 0.85})`
       ctx.fillRect(0, canvas.height / 2 - 50, canvas.width, 100)
 
-      // glow effect on the text
       ctx.shadowColor = banner.color
       ctx.shadowBlur = 20
       ctx.fillStyle = banner.color
@@ -439,18 +594,35 @@ function GameCanvas({ slot }) {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
+      const p1Pos = getInterpolatedPosition('player1')
+      const p2Pos = getInterpolatedPosition('player2')
+
       const p1 = gameState.players.player1
       const p2 = gameState.players.player2
 
-      ctx.font = '11px monospace'
-      ctx.textAlign = 'center'
-      ctx.fillStyle = '#00ff88'
-      ctx.fillText('P1', p1.x + shipWidth / 2, p1.y + 10)
-      ctx.fillStyle = '#ff4466'
-      ctx.fillText('P2', p2.x + shipWidth / 2, p2.y + shipHeight - 1)
+      if ((p1.health !== undefined ? p1.health : 1) > 0) {
+        ctx.font = '11px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillStyle = '#00ff88'
+        ctx.fillText('P1', p1Pos.x + shipWidth / 2, p1Pos.y + 10)
+        drawShip(p1Pos.x, p1Pos.y, shipWidth, shipHeight, '#00ff88', false)
+        if (hitFlashes.player1.lifetime > 0) {
+          drawHitFlash(p1Pos.x, p1Pos.y, shipWidth, shipHeight, hitFlashes.player1.lifetime, hitFlashes.player1.maxLifetime)
+          hitFlashes.player1.lifetime -= 1
+        }
+      }
 
-      drawShip(p1.x, p1.y, shipWidth, shipHeight, '#00ff88', false)
-      drawShip(p2.x, p2.y, shipWidth, shipHeight, '#ff4466', true)
+      if ((p2.health !== undefined ? p2.health : 1) > 0) {
+        ctx.font = '11px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillStyle = '#ff4466'
+        ctx.fillText('P2', p2Pos.x + shipWidth / 2, p2Pos.y + shipHeight - 1)
+        drawShip(p2Pos.x, p2Pos.y, shipWidth, shipHeight, '#ff4466', true)
+        if (hitFlashes.player2.lifetime > 0) {
+          drawHitFlash(p2Pos.x, p2Pos.y, shipWidth, shipHeight, hitFlashes.player2.lifetime, hitFlashes.player2.maxLifetime)
+          hitFlashes.player2.lifetime -= 1
+        }
+      }
 
       gameState.asteroids.forEach((a) => {
         drawAsteroid(a)
@@ -469,6 +641,25 @@ function GameCanvas({ slot }) {
         return false
       })
 
+      // tick down bounce effects and remove dead ones
+      bounceEffects = bounceEffects.filter((effect) => {
+        if (effect.lifetime > 0) {
+          drawBounceEffect(effect)
+          effect.lifetime -= 1
+          return true
+        }
+        return false
+      })
+
+      shipExplosions = shipExplosions.filter((explosion) => {
+        if (explosion.lifetime > 0) {
+          drawShipExplosion(explosion)
+          explosion.lifetime -= 1
+          return true
+        }
+        return false
+      })
+
       drawScorePanel(20, 50, p1, '#00ff88', 'left')
       drawScorePanel(canvas.width - 20, canvas.height - 60, p2, '#ff4466', 'right')
 
@@ -481,7 +672,6 @@ function GameCanvas({ slot }) {
                          gameState.phase === 'ended' ? 'GAME OVER' : ''
       ctx.fillText(phaseLabel, canvas.width / 2, 20)
 
-      // draw the phase banner on top of everything else if active
       if (phaseBanner && phaseBanner.lifetime > 0) {
         drawPhaseBanner(phaseBanner)
         phaseBanner.lifetime -= 1
