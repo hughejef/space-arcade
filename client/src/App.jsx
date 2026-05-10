@@ -153,6 +153,11 @@ function GameCanvas({ slot }) {
     let hitEffects = []
     let previousAsteroidIds = new Set()
 
+    // phase banner state - shows a big text overlay when phases change
+    // banner has its own lifetime that ticks down each frame for fade out
+    let phaseBanner = null
+    let previousPhase = 'waiting'
+
     s.on('gameState', (state) => {
       const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
 
@@ -169,6 +174,17 @@ function GameCanvas({ slot }) {
       })
 
       previousAsteroidIds = currentAsteroidIds
+
+      // detect phase change and trigger banner
+      if (state.phase !== previousPhase) {
+        if (state.phase === 'phase1') {
+          phaseBanner = { text: 'ASTEROID PHASE', color: '#ffaa00', lifetime: 120, maxLifetime: 120 }
+        } else if (state.phase === 'phase2') {
+          phaseBanner = { text: 'FIGHT!', color: '#ff4466', lifetime: 120, maxLifetime: 120 }
+        }
+        previousPhase = state.phase
+      }
+
       gameState = state
     })
 
@@ -333,32 +349,26 @@ function GameCanvas({ slot }) {
       ctx.fill()
     }
 
-    // draw a horizontal armor/health bar above or below a ship
-    // shows current health out of max with a colored fill
     function drawHealthBar(x, y, width, currentHealth, maxHealth, color) {
       const fillRatio = Math.max(0, Math.min(1, currentHealth / maxHealth))
       const barHeight = 4
 
-      // background bar (dark)
       ctx.fillStyle = '#222244'
       ctx.fillRect(x, y, width, barHeight)
 
-      // filled portion (player color)
       ctx.fillStyle = color
       ctx.fillRect(x, y, width * fillRatio, barHeight)
 
-      // border
       ctx.strokeStyle = '#ffffff44'
       ctx.lineWidth = 1
       ctx.strokeRect(x, y, width, barHeight)
     }
 
-    // draw a player's score panel in the corner with username, score, and health
     function drawScorePanel(x, y, player, color, align) {
       const userName = player.userName || (color === '#00ff88' ? 'P1' : 'P2')
       const score = player.score || 0
       const health = player.health !== undefined ? player.health : 1
-      const maxHealth = 1 // adjust later if max health changes
+      const maxHealth = 1
 
       ctx.font = 'bold 14px monospace'
       ctx.textAlign = align
@@ -369,10 +379,46 @@ function GameCanvas({ slot }) {
       ctx.fillStyle = '#ffffff'
       ctx.fillText(score.toString(), x, y + 22)
 
-      // health bar positioned below the score, aligned to the same edge
       const barWidth = 80
       const barX = align === 'left' ? x : x - barWidth
       drawHealthBar(barX, y + 30, barWidth, health, maxHealth, color)
+    }
+
+    // draw a big animated phase banner across the middle of the screen
+    // it scales up quickly at the start, holds, then fades out
+    function drawPhaseBanner(banner) {
+      const progress = 1 - (banner.lifetime / banner.maxLifetime)
+
+      // opacity stays full for first 70% of lifetime, then fades over the last 30%
+      let opacity = 1
+      if (progress > 0.7) {
+        opacity = 1 - ((progress - 0.7) / 0.3)
+      }
+
+      // scale ramps up quickly in the first 15% then stays at 1
+      let scale = 1
+      if (progress < 0.15) {
+        scale = progress / 0.15
+      }
+
+      const fontSize = 64 * scale
+      ctx.save()
+
+      // semi-transparent dark band across the canvas behind the text
+      ctx.fillStyle = `rgba(10, 10, 46, ${opacity * 0.85})`
+      ctx.fillRect(0, canvas.height / 2 - 50, canvas.width, 100)
+
+      // glow effect on the text
+      ctx.shadowColor = banner.color
+      ctx.shadowBlur = 20
+      ctx.fillStyle = banner.color
+      ctx.globalAlpha = opacity
+      ctx.font = `bold ${fontSize}px monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(banner.text, canvas.width / 2, canvas.height / 2)
+
+      ctx.restore()
     }
 
     function draw() {
@@ -423,8 +469,6 @@ function GameCanvas({ slot }) {
         return false
       })
 
-      // player score panels in the corners
-      // player 1 panel in top-left, player 2 panel in bottom-right
       drawScorePanel(20, 50, p1, '#00ff88', 'left')
       drawScorePanel(canvas.width - 20, canvas.height - 60, p2, '#ff4466', 'right')
 
@@ -436,6 +480,14 @@ function GameCanvas({ slot }) {
                          gameState.phase === 'waiting' ? 'WAITING' :
                          gameState.phase === 'ended' ? 'GAME OVER' : ''
       ctx.fillText(phaseLabel, canvas.width / 2, 20)
+
+      // draw the phase banner on top of everything else if active
+      if (phaseBanner && phaseBanner.lifetime > 0) {
+        drawPhaseBanner(phaseBanner)
+        phaseBanner.lifetime -= 1
+      } else {
+        phaseBanner = null
+      }
 
       requestAnimationFrame(draw)
     }
