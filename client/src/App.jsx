@@ -150,24 +150,19 @@ function GameCanvas({ slot }) {
       projectiles: [],
     }
 
-    // hit effects spawn when an asteroid gets destroyed
-    // each effect has a position and a lifetime that ticks down each frame
-    // so we can fade them out and remove them once the lifetime hits 0
     let hitEffects = []
     let previousAsteroidIds = new Set()
 
     s.on('gameState', (state) => {
-      // detect asteroids that disappeared since last update and spawn hit effects
       const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
 
       gameState.asteroids.forEach((a) => {
         const id = a.id || `${a.x},${a.y}`
         if (previousAsteroidIds.has(id) && !currentAsteroidIds.has(id)) {
-          // this asteroid was just destroyed
           hitEffects.push({
             x: a.x + 30,
             y: a.y + 11,
-            lifetime: 20, // frames the effect lasts
+            lifetime: 20,
             maxLifetime: 20,
           })
         }
@@ -297,8 +292,6 @@ function GameCanvas({ slot }) {
       ctx.strokeRect(a.x, a.y, 60, 22)
     }
 
-    // draw a laser projectile with glow and a fading trail
-    // owner determines the color: player1 shots are green, player2 shots are red
     function drawProjectile(p) {
       const color = p.color || (p.owner === 'player1' ? '#00ff88' : '#ff4466')
       const trailDirection = p.owner === 'player1' ? -1 : 1
@@ -323,25 +316,63 @@ function GameCanvas({ slot }) {
       ctx.fillRect(p.x, p.y + (trailDirection * 24), 4, 8)
     }
 
-    // draw an expanding burst at the location of a destroyed asteroid
-    // the burst grows and fades as the lifetime ticks down
     function drawHitEffect(effect) {
       const progress = 1 - (effect.lifetime / effect.maxLifetime)
       const radius = 8 + progress * 18
       const opacity = effect.lifetime / effect.maxLifetime
 
-      // outer ring
       ctx.strokeStyle = `rgba(255, 200, 100, ${opacity})`
       ctx.lineWidth = 3
       ctx.beginPath()
       ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2)
       ctx.stroke()
 
-      // inner glow
       ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`
       ctx.beginPath()
       ctx.arc(effect.x, effect.y, radius * 0.4, 0, Math.PI * 2)
       ctx.fill()
+    }
+
+    // draw a horizontal armor/health bar above or below a ship
+    // shows current health out of max with a colored fill
+    function drawHealthBar(x, y, width, currentHealth, maxHealth, color) {
+      const fillRatio = Math.max(0, Math.min(1, currentHealth / maxHealth))
+      const barHeight = 4
+
+      // background bar (dark)
+      ctx.fillStyle = '#222244'
+      ctx.fillRect(x, y, width, barHeight)
+
+      // filled portion (player color)
+      ctx.fillStyle = color
+      ctx.fillRect(x, y, width * fillRatio, barHeight)
+
+      // border
+      ctx.strokeStyle = '#ffffff44'
+      ctx.lineWidth = 1
+      ctx.strokeRect(x, y, width, barHeight)
+    }
+
+    // draw a player's score panel in the corner with username, score, and health
+    function drawScorePanel(x, y, player, color, align) {
+      const userName = player.userName || (color === '#00ff88' ? 'P1' : 'P2')
+      const score = player.score || 0
+      const health = player.health !== undefined ? player.health : 1
+      const maxHealth = 1 // adjust later if max health changes
+
+      ctx.font = 'bold 14px monospace'
+      ctx.textAlign = align
+      ctx.fillStyle = color
+      ctx.fillText(userName, x, y)
+
+      ctx.font = '20px monospace'
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText(score.toString(), x, y + 22)
+
+      // health bar positioned below the score, aligned to the same edge
+      const barWidth = 80
+      const barX = align === 'left' ? x : x - barWidth
+      drawHealthBar(barX, y + 30, barWidth, health, maxHealth, color)
     }
 
     function draw() {
@@ -383,7 +414,6 @@ function GameCanvas({ slot }) {
         drawProjectile(p)
       })
 
-      // tick down hit effects and remove dead ones
       hitEffects = hitEffects.filter((effect) => {
         if (effect.lifetime > 0) {
           drawHitEffect(effect)
@@ -393,12 +423,10 @@ function GameCanvas({ slot }) {
         return false
       })
 
-      ctx.fillStyle = '#ffffff'
-      ctx.font = '18px monospace'
-      ctx.textAlign = 'left'
-      ctx.fillText((p1.userName || 'P1') + ': ' + p1.score, 20, 25)
-      ctx.textAlign = 'right'
-      ctx.fillText((p2.userName || 'P2') + ': ' + p2.score, canvas.width - 20, canvas.height - 12)
+      // player score panels in the corners
+      // player 1 panel in top-left, player 2 panel in bottom-right
+      drawScorePanel(20, 50, p1, '#00ff88', 'left')
+      drawScorePanel(canvas.width - 20, canvas.height - 60, p2, '#ff4466', 'right')
 
       ctx.textAlign = 'center'
       ctx.font = '14px monospace'
