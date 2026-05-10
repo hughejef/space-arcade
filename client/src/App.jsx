@@ -150,11 +150,16 @@ function GameCanvas({ slot }) {
       projectiles: [],
     }
 
+    // interpolation state for smooth ship movement
+    // we remember the previous and current positions plus the time we received them
+    // then lerp between them based on how much time has passed since the last update
+    let interpolation = {
+      player1: { prevX: 380, prevY: 40, currX: 380, currY: 40, lastUpdate: Date.now() },
+      player2: { prevX: 380, prevY: 516, currX: 380, currY: 516, lastUpdate: Date.now() },
+    }
+
     let hitEffects = []
     let previousAsteroidIds = new Set()
-
-    // phase banner state - shows a big text overlay when phases change
-    // banner has its own lifetime that ticks down each frame for fade out
     let phaseBanner = null
     let previousPhase = 'waiting'
 
@@ -175,7 +180,6 @@ function GameCanvas({ slot }) {
 
       previousAsteroidIds = currentAsteroidIds
 
-      // detect phase change and trigger banner
       if (state.phase !== previousPhase) {
         if (state.phase === 'phase1') {
           phaseBanner = { text: 'ASTEROID PHASE', color: '#ffaa00', lifetime: 120, maxLifetime: 120 }
@@ -184,6 +188,21 @@ function GameCanvas({ slot }) {
         }
         previousPhase = state.phase
       }
+
+      // update interpolation targets when a new gameState arrives
+      // current position becomes the previous, server position becomes the new current
+      const now = Date.now()
+      ;['player1', 'player2'].forEach((slot) => {
+        const prev = interpolation[slot]
+        const newPlayer = state.players[slot]
+        interpolation[slot] = {
+          prevX: prev.currX,
+          prevY: prev.currY,
+          currX: newPlayer.x,
+          currY: newPlayer.y,
+          lastUpdate: now,
+        }
+      })
 
       gameState = state
     })
@@ -236,6 +255,19 @@ function GameCanvas({ slot }) {
 
     const shipWidth = 40
     const shipHeight = 44
+
+    // calculate the smoothly interpolated position for a given player
+    // returns x,y based on how far we are between the previous and current server positions
+    function getInterpolatedPosition(slot) {
+      const interp = interpolation[slot]
+      const elapsed = Date.now() - interp.lastUpdate
+      // server tick is 30ms, so we lerp over 30ms of elapsed time
+      const t = Math.min(1, elapsed / 30)
+      return {
+        x: interp.prevX + (interp.currX - interp.prevX) * t,
+        y: interp.prevY + (interp.currY - interp.prevY) * t,
+      }
+    }
 
     function drawShip(x, y, w, h, color, facingUp) {
       ctx.shadowColor = color
@@ -384,18 +416,14 @@ function GameCanvas({ slot }) {
       drawHealthBar(barX, y + 30, barWidth, health, maxHealth, color)
     }
 
-    // draw a big animated phase banner across the middle of the screen
-    // it scales up quickly at the start, holds, then fades out
     function drawPhaseBanner(banner) {
       const progress = 1 - (banner.lifetime / banner.maxLifetime)
 
-      // opacity stays full for first 70% of lifetime, then fades over the last 30%
       let opacity = 1
       if (progress > 0.7) {
         opacity = 1 - ((progress - 0.7) / 0.3)
       }
 
-      // scale ramps up quickly in the first 15% then stays at 1
       let scale = 1
       if (progress < 0.15) {
         scale = progress / 0.15
@@ -404,11 +432,9 @@ function GameCanvas({ slot }) {
       const fontSize = 64 * scale
       ctx.save()
 
-      // semi-transparent dark band across the canvas behind the text
       ctx.fillStyle = `rgba(10, 10, 46, ${opacity * 0.85})`
       ctx.fillRect(0, canvas.height / 2 - 50, canvas.width, 100)
 
-      // glow effect on the text
       ctx.shadowColor = banner.color
       ctx.shadowBlur = 20
       ctx.fillStyle = banner.color
@@ -439,18 +465,22 @@ function GameCanvas({ slot }) {
         ctx.fillRect(sx, sy, 1.5, 1.5)
       }
 
+      // get smoothly interpolated positions for both ships
+      const p1Pos = getInterpolatedPosition('player1')
+      const p2Pos = getInterpolatedPosition('player2')
+
       const p1 = gameState.players.player1
       const p2 = gameState.players.player2
 
       ctx.font = '11px monospace'
       ctx.textAlign = 'center'
       ctx.fillStyle = '#00ff88'
-      ctx.fillText('P1', p1.x + shipWidth / 2, p1.y + 10)
+      ctx.fillText('P1', p1Pos.x + shipWidth / 2, p1Pos.y + 10)
       ctx.fillStyle = '#ff4466'
-      ctx.fillText('P2', p2.x + shipWidth / 2, p2.y + shipHeight - 1)
+      ctx.fillText('P2', p2Pos.x + shipWidth / 2, p2Pos.y + shipHeight - 1)
 
-      drawShip(p1.x, p1.y, shipWidth, shipHeight, '#00ff88', false)
-      drawShip(p2.x, p2.y, shipWidth, shipHeight, '#ff4466', true)
+      drawShip(p1Pos.x, p1Pos.y, shipWidth, shipHeight, '#00ff88', false)
+      drawShip(p2Pos.x, p2Pos.y, shipWidth, shipHeight, '#ff4466', true)
 
       gameState.asteroids.forEach((a) => {
         drawAsteroid(a)
@@ -481,7 +511,6 @@ function GameCanvas({ slot }) {
                          gameState.phase === 'ended' ? 'GAME OVER' : ''
       ctx.fillText(phaseLabel, canvas.width / 2, 20)
 
-      // draw the phase banner on top of everything else if active
       if (phaseBanner && phaseBanner.lifetime > 0) {
         drawPhaseBanner(phaseBanner)
         phaseBanner.lifetime -= 1
