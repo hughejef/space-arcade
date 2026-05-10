@@ -150,7 +150,30 @@ function GameCanvas({ slot }) {
       projectiles: [],
     }
 
+    // hit effects spawn when an asteroid gets destroyed
+    // each effect has a position and a lifetime that ticks down each frame
+    // so we can fade them out and remove them once the lifetime hits 0
+    let hitEffects = []
+    let previousAsteroidIds = new Set()
+
     s.on('gameState', (state) => {
+      // detect asteroids that disappeared since last update and spawn hit effects
+      const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
+
+      gameState.asteroids.forEach((a) => {
+        const id = a.id || `${a.x},${a.y}`
+        if (previousAsteroidIds.has(id) && !currentAsteroidIds.has(id)) {
+          // this asteroid was just destroyed
+          hitEffects.push({
+            x: a.x + 30,
+            y: a.y + 11,
+            lifetime: 20, // frames the effect lasts
+            maxLifetime: 20,
+          })
+        }
+      })
+
+      previousAsteroidIds = currentAsteroidIds
       gameState = state
     })
 
@@ -277,18 +300,14 @@ function GameCanvas({ slot }) {
     // draw a laser projectile with glow and a fading trail
     // owner determines the color: player1 shots are green, player2 shots are red
     function drawProjectile(p) {
-      // player1 shoots downward, player2 shoots upward
-      // figure out the trail direction based on who fired it
       const color = p.color || (p.owner === 'player1' ? '#00ff88' : '#ff4466')
       const trailDirection = p.owner === 'player1' ? -1 : 1
 
-      // outer glow effect
       ctx.shadowColor = color
       ctx.shadowBlur = 12
       ctx.fillStyle = color
       ctx.fillRect(p.x - 1, p.y, 6, 12)
 
-      // brighter core
       ctx.shadowBlur = 6
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(p.x, p.y + 2, 4, 8)
@@ -296,13 +315,33 @@ function GameCanvas({ slot }) {
       ctx.shadowBlur = 0
       ctx.shadowColor = 'transparent'
 
-      // fading trail behind the projectile
       ctx.fillStyle = color + 'aa'
       ctx.fillRect(p.x, p.y + (trailDirection * 8), 4, 8)
       ctx.fillStyle = color + '66'
       ctx.fillRect(p.x, p.y + (trailDirection * 16), 4, 8)
       ctx.fillStyle = color + '33'
       ctx.fillRect(p.x, p.y + (trailDirection * 24), 4, 8)
+    }
+
+    // draw an expanding burst at the location of a destroyed asteroid
+    // the burst grows and fades as the lifetime ticks down
+    function drawHitEffect(effect) {
+      const progress = 1 - (effect.lifetime / effect.maxLifetime)
+      const radius = 8 + progress * 18
+      const opacity = effect.lifetime / effect.maxLifetime
+
+      // outer ring
+      ctx.strokeStyle = `rgba(255, 200, 100, ${opacity})`
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // inner glow
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius * 0.4, 0, Math.PI * 2)
+      ctx.fill()
     }
 
     function draw() {
@@ -342,6 +381,16 @@ function GameCanvas({ slot }) {
 
       gameState.projectiles.forEach((p) => {
         drawProjectile(p)
+      })
+
+      // tick down hit effects and remove dead ones
+      hitEffects = hitEffects.filter((effect) => {
+        if (effect.lifetime > 0) {
+          drawHitEffect(effect)
+          effect.lifetime -= 1
+          return true
+        }
+        return false
       })
 
       ctx.fillStyle = '#ffffff'
