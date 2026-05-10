@@ -150,7 +150,41 @@ function GameCanvas({ slot }) {
       projectiles: [],
     }
 
+    let hitEffects = []
+    let previousAsteroidIds = new Set()
+
+    // phase banner state - shows a big text overlay when phases change
+    // banner has its own lifetime that ticks down each frame for fade out
+    let phaseBanner = null
+    let previousPhase = 'waiting'
+
     s.on('gameState', (state) => {
+      const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
+
+      gameState.asteroids.forEach((a) => {
+        const id = a.id || `${a.x},${a.y}`
+        if (previousAsteroidIds.has(id) && !currentAsteroidIds.has(id)) {
+          hitEffects.push({
+            x: a.x + 30,
+            y: a.y + 11,
+            lifetime: 20,
+            maxLifetime: 20,
+          })
+        }
+      })
+
+      previousAsteroidIds = currentAsteroidIds
+
+      // detect phase change and trigger banner
+      if (state.phase !== previousPhase) {
+        if (state.phase === 'phase1') {
+          phaseBanner = { text: 'ASTEROID PHASE', color: '#ffaa00', lifetime: 120, maxLifetime: 120 }
+        } else if (state.phase === 'phase2') {
+          phaseBanner = { text: 'FIGHT!', color: '#ff4466', lifetime: 120, maxLifetime: 120 }
+        }
+        previousPhase = state.phase
+      }
+
       gameState = state
     })
 
@@ -275,12 +309,116 @@ function GameCanvas({ slot }) {
     }
 
     function drawProjectile(p) {
-      ctx.shadowColor = p.color || '#ffffff'
-      ctx.shadowBlur = 8
-      ctx.fillStyle = p.color || '#ffffff'
-      ctx.fillRect(p.x, p.y, 4, 10)
+      const color = p.color || (p.owner === 'player1' ? '#00ff88' : '#ff4466')
+      const trailDirection = p.owner === 'player1' ? -1 : 1
+
+      ctx.shadowColor = color
+      ctx.shadowBlur = 12
+      ctx.fillStyle = color
+      ctx.fillRect(p.x - 1, p.y, 6, 12)
+
+      ctx.shadowBlur = 6
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(p.x, p.y + 2, 4, 8)
+
       ctx.shadowBlur = 0
       ctx.shadowColor = 'transparent'
+
+      ctx.fillStyle = color + 'aa'
+      ctx.fillRect(p.x, p.y + (trailDirection * 8), 4, 8)
+      ctx.fillStyle = color + '66'
+      ctx.fillRect(p.x, p.y + (trailDirection * 16), 4, 8)
+      ctx.fillStyle = color + '33'
+      ctx.fillRect(p.x, p.y + (trailDirection * 24), 4, 8)
+    }
+
+    function drawHitEffect(effect) {
+      const progress = 1 - (effect.lifetime / effect.maxLifetime)
+      const radius = 8 + progress * 18
+      const opacity = effect.lifetime / effect.maxLifetime
+
+      ctx.strokeStyle = `rgba(255, 200, 100, ${opacity})`
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius * 0.4, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
+    function drawHealthBar(x, y, width, currentHealth, maxHealth, color) {
+      const fillRatio = Math.max(0, Math.min(1, currentHealth / maxHealth))
+      const barHeight = 4
+
+      ctx.fillStyle = '#222244'
+      ctx.fillRect(x, y, width, barHeight)
+
+      ctx.fillStyle = color
+      ctx.fillRect(x, y, width * fillRatio, barHeight)
+
+      ctx.strokeStyle = '#ffffff44'
+      ctx.lineWidth = 1
+      ctx.strokeRect(x, y, width, barHeight)
+    }
+
+    function drawScorePanel(x, y, player, color, align) {
+      const userName = player.userName || (color === '#00ff88' ? 'P1' : 'P2')
+      const score = player.score || 0
+      const health = player.health !== undefined ? player.health : 1
+      const maxHealth = 1
+
+      ctx.font = 'bold 14px monospace'
+      ctx.textAlign = align
+      ctx.fillStyle = color
+      ctx.fillText(userName, x, y)
+
+      ctx.font = '20px monospace'
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText(score.toString(), x, y + 22)
+
+      const barWidth = 80
+      const barX = align === 'left' ? x : x - barWidth
+      drawHealthBar(barX, y + 30, barWidth, health, maxHealth, color)
+    }
+
+    // draw a big animated phase banner across the middle of the screen
+    // it scales up quickly at the start, holds, then fades out
+    function drawPhaseBanner(banner) {
+      const progress = 1 - (banner.lifetime / banner.maxLifetime)
+
+      // opacity stays full for first 70% of lifetime, then fades over the last 30%
+      let opacity = 1
+      if (progress > 0.7) {
+        opacity = 1 - ((progress - 0.7) / 0.3)
+      }
+
+      // scale ramps up quickly in the first 15% then stays at 1
+      let scale = 1
+      if (progress < 0.15) {
+        scale = progress / 0.15
+      }
+
+      const fontSize = 64 * scale
+      ctx.save()
+
+      // semi-transparent dark band across the canvas behind the text
+      ctx.fillStyle = `rgba(10, 10, 46, ${opacity * 0.85})`
+      ctx.fillRect(0, canvas.height / 2 - 50, canvas.width, 100)
+
+      // glow effect on the text
+      ctx.shadowColor = banner.color
+      ctx.shadowBlur = 20
+      ctx.fillStyle = banner.color
+      ctx.globalAlpha = opacity
+      ctx.font = `bold ${fontSize}px monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(banner.text, canvas.width / 2, canvas.height / 2)
+
+      ctx.restore()
     }
 
     function draw() {
@@ -322,12 +460,17 @@ function GameCanvas({ slot }) {
         drawProjectile(p)
       })
 
-      ctx.fillStyle = '#ffffff'
-      ctx.font = '18px monospace'
-      ctx.textAlign = 'left'
-      ctx.fillText((p1.userName || 'P1') + ': ' + p1.score, 20, 25)
-      ctx.textAlign = 'right'
-      ctx.fillText((p2.userName || 'P2') + ': ' + p2.score, canvas.width - 20, canvas.height - 12)
+      hitEffects = hitEffects.filter((effect) => {
+        if (effect.lifetime > 0) {
+          drawHitEffect(effect)
+          effect.lifetime -= 1
+          return true
+        }
+        return false
+      })
+
+      drawScorePanel(20, 50, p1, '#00ff88', 'left')
+      drawScorePanel(canvas.width - 20, canvas.height - 60, p2, '#ff4466', 'right')
 
       ctx.textAlign = 'center'
       ctx.font = '14px monospace'
@@ -337,6 +480,14 @@ function GameCanvas({ slot }) {
                          gameState.phase === 'waiting' ? 'WAITING' :
                          gameState.phase === 'ended' ? 'GAME OVER' : ''
       ctx.fillText(phaseLabel, canvas.width / 2, 20)
+
+      // draw the phase banner on top of everything else if active
+      if (phaseBanner && phaseBanner.lifetime > 0) {
+        drawPhaseBanner(phaseBanner)
+        phaseBanner.lifetime -= 1
+      } else {
+        phaseBanner = null
+      }
 
       requestAnimationFrame(draw)
     }
