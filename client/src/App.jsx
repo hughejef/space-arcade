@@ -1,27 +1,10 @@
 import { useRef, useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
+import Menu from './Menu'
+import Lobby from './Lobby'
+import JoinGame from './JoinGame'
 import Leaderboard from './Leaderboard'
-
-const menuStyle = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '100vh',
-  background: '#000',
-}
-
-const menuBoxStyle = {
-  width: '800px',
-  height: '600px',
-  background: '#0a0a2e',
-  border: '3px solid #4444ff',
-  borderRadius: '4px',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  fontFamily: 'monospace',
-  position: 'relative',
-}
+import GameOver from './GameOver'
 
 let socket = null
 
@@ -35,7 +18,6 @@ function getSocket() {
 function App() {
   const [screen, setScreen] = useState('menu')
   const [matchCode, setMatchCode] = useState('')
-  const [joinCode, setJoinCode] = useState('')
   const [userName, setUserName] = useState('')
   const [slot, setSlot] = useState(null)
   const [joinError, setJoinError] = useState('')
@@ -82,149 +64,50 @@ function App() {
     s.emit('create_game', userName)
   }
 
-  const handleJoinGame = () => {
-    if (joinCode.length === 4) {
-      setJoinError('')
-      const s = getSocket()
-      s.emit('join_game', joinCode, userName)
-    }
+  const handleJoinGame = (code) => {
+    setJoinError('')
+    const s = getSocket()
+    s.emit('join_game', code, userName)
   }
 
   const handlePlayAgain = () => {
     setMatchResult(null)
     setMatchCode('')
     setSlot(null)
-    setJoinCode('')
     setScreen('menu')
   }
 
   if (screen === 'menu') {
     return (
-      <div style={menuStyle}>
-        <div style={menuBoxStyle}>
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ color: '#00ff88', fontSize: '48px', marginBottom: '8px' }}>SPACE ARCADE</h1>
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>1v1 space shooter</p>
-
-            <input
-              type="text"
-              placeholder="Enter username"
-              maxLength={12}
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              style={{
-                background: '#1a1a3e', border: '2px solid #4444ff', borderRadius: '6px',
-                padding: '10px 16px', fontSize: '16px', color: '#ffffff',
-                textAlign: 'center', fontFamily: 'monospace',
-                outline: 'none', width: '220px', marginBottom: '20px',
-              }}
-            />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '250px', margin: '0 auto' }}>
-              <button
-                disabled={!userName.trim()}
-                onClick={handleCreateGame}
-                style={{
-                  padding: '14px',
-                  background: userName.trim() ? '#00ff88' : '#00ff8844',
-                  color: '#0a0a2e',
-                  border: 'none', borderRadius: '6px', fontSize: '16px',
-                  fontFamily: 'monospace', fontWeight: 'bold',
-                  cursor: userName.trim() ? 'pointer' : 'not-allowed',
-                }}>CREATE GAME</button>
-              <button
-                disabled={!userName.trim()}
-                onClick={() => setScreen('join')}
-                style={{
-                  padding: '14px', background: 'transparent',
-                  color: userName.trim() ? '#00ff88' : '#00ff8844',
-                  border: `2px solid ${userName.trim() ? '#00ff88' : '#00ff8844'}`,
-                  borderRadius: '6px', fontSize: '16px',
-                  fontFamily: 'monospace', fontWeight: 'bold',
-                  cursor: userName.trim() ? 'pointer' : 'not-allowed',
-                }}>JOIN GAME</button>
-              <button onClick={() => setScreen('leaderboard')} style={{
-                padding: '14px', background: 'transparent', color: '#888',
-                border: '2px solid #444', borderRadius: '6px', fontSize: '16px',
-                fontFamily: 'monospace', cursor: 'pointer',
-              }}>LEADERBOARD</button>
-              <button onClick={() => window.close()} style={{
-                padding: '14px', background: 'transparent', color: '#ff4466',
-                border: '2px solid #ff446644', borderRadius: '6px', fontSize: '16px',
-                fontFamily: 'monospace', cursor: 'pointer',
-              }}>QUIT</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Menu
+        userName={userName}
+        setUserName={setUserName}
+        onCreateGame={handleCreateGame}
+        onJoinGame={() => setScreen('join')}
+        onLeaderboard={() => setScreen('leaderboard')}
+      />
     )
   }
 
   if (screen === 'lobby') {
     return (
-      <div style={menuStyle}>
-        <div style={menuBoxStyle}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '8px' }}>WAITING FOR OPPONENT</h2>
-            <p style={{ color: '#00ff88aa', fontSize: '12px', marginBottom: '4px' }}>Playing as: {userName}</p>
-            <p style={{ color: '#888', fontSize: '11px', marginBottom: '20px' }}>You are {slot}</p>
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Share this code with your friend:</p>
-            <div style={{
-              background: '#1a1a3e', border: '2px solid #00ff88', borderRadius: '8px',
-              padding: '20px 40px', marginBottom: '30px',
-            }}>
-              <span style={{ color: '#00ff88', fontSize: '36px', letterSpacing: '8px' }}>{matchCode}</span>
-            </div>
-            <button onClick={() => setScreen('menu')} style={{
-              padding: '10px 30px', background: 'transparent', color: '#888',
-              border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
-              fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
-            }}>BACK</button>
-          </div>
-        </div>
-      </div>
+      <Lobby
+        userName={userName}
+        slot={slot}
+        matchCode={matchCode}
+        onBack={() => setScreen('menu')}
+      />
     )
   }
 
   if (screen === 'join') {
     return (
-      <div style={menuStyle}>
-        <div style={menuBoxStyle}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: '#ff4466', fontSize: '24px', marginBottom: '8px' }}>JOIN GAME</h2>
-            <p style={{ color: '#ff4466aa', fontSize: '12px', marginBottom: '20px' }}>Playing as: {userName}</p>
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '12px' }}>Enter the match code:</p>
-            <input
-              type="text"
-              maxLength={4}
-              value={joinCode}
-              onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError('') }}
-              style={{
-                background: '#1a1a3e', border: '2px solid #ff4466', borderRadius: '8px',
-                padding: '16px 20px', fontSize: '28px', color: '#ff4466',
-                textAlign: 'center', letterSpacing: '8px', fontFamily: 'monospace',
-                outline: 'none', width: '200px', marginBottom: '16px',
-              }}
-            />
-            {joinError && (
-              <p style={{ color: '#ff4466', fontSize: '12px', marginBottom: '12px' }}>{joinError}</p>
-            )}
-            <br />
-            <button onClick={handleJoinGame} style={{
-              padding: '12px 30px', background: '#ff4466', color: '#0a0a2e',
-              border: 'none', borderRadius: '6px', fontSize: '14px',
-              fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
-              marginBottom: '12px',
-            }}>JOIN</button>
-            <br />
-            <button onClick={() => { setScreen('menu'); setJoinCode(''); setJoinError('') }} style={{
-              padding: '10px 30px', background: 'transparent', color: '#888',
-              border: '2px solid #444', borderRadius: '6px', fontSize: '14px',
-              fontFamily: 'monospace', cursor: 'pointer', marginTop: '8px',
-            }}>BACK</button>
-          </div>
-        </div>
-      </div>
+      <JoinGame
+        userName={userName}
+        joinError={joinError}
+        onJoin={handleJoinGame}
+        onBack={() => { setScreen('menu'); setJoinError('') }}
+      />
     )
   }
 
@@ -233,41 +116,12 @@ function App() {
   }
 
   if (screen === 'gameOver') {
-    const didIWin = matchResult?.winner === slot
-    const winnerColor = didIWin ? '#00ff88' : '#ff4466'
-    const winnerText = didIWin ? 'VICTORY' : 'DEFEAT'
-
     return (
-      <div style={menuStyle}>
-        <div style={menuBoxStyle}>
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ color: winnerColor, fontSize: '48px', marginBottom: '8px' }}>{winnerText}</h1>
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>
-              Winner: {matchResult?.winner}
-            </p>
-            <div style={{
-              background: '#1a1a3e', border: `2px solid ${winnerColor}`, borderRadius: '8px',
-              padding: '20px 40px', marginBottom: '30px', minWidth: '280px',
-            }}>
-              <h3 style={{ color: '#ffffff', fontSize: '16px', marginBottom: '16px' }}>FINAL SCORES</h3>
-              {matchResult?.finalScores && Object.keys(matchResult.finalScores).map((player) => (
-                <p key={player} style={{
-                  color: player === matchResult.winner ? '#00ff88' : '#888',
-                  fontSize: '18px',
-                  marginBottom: '8px',
-                }}>
-                  {player}: {matchResult.finalScores[player]}
-                </p>
-              ))}
-            </div>
-            <button onClick={handlePlayAgain} style={{
-              padding: '12px 30px', background: '#00ff88', color: '#0a0a2e',
-              border: 'none', borderRadius: '6px', fontSize: '14px',
-              fontFamily: 'monospace', fontWeight: 'bold', cursor: 'pointer',
-            }}>PLAY AGAIN</button>
-          </div>
-        </div>
-      </div>
+      <GameOver
+        matchResult={matchResult}
+        slot={slot}
+        onPlayAgain={handlePlayAgain}
+      />
     )
   }
 
