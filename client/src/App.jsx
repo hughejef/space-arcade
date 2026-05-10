@@ -169,9 +169,12 @@ function GameCanvas({ slot }) {
       player2: 1,
     }
 
-    // ship explosions are bigger than asteroid hits with multiple rings and particles
-    // each explosion has a position, lifetime, and an array of particles flying outward
     let shipExplosions = []
+
+    // wall bounce effects spawn when a projectile reverses horizontal direction
+    // we track each projectile's last x position and direction to detect bounces
+    let bounceEffects = []
+    let projectileTracking = new Map() // id -> { lastX, lastDirection }
 
     s.on('gameState', (state) => {
       const currentAsteroidIds = new Set(state.asteroids.map((a) => a.id || `${a.x},${a.y}`))
@@ -189,6 +192,32 @@ function GameCanvas({ slot }) {
       })
 
       previousAsteroidIds = currentAsteroidIds
+
+      // detect projectile bounces by tracking direction changes
+      // if a projectile is near the edge and its horizontal direction flipped, spawn a bounce effect
+      const newProjectileTracking = new Map()
+      state.projectiles.forEach((p) => {
+        const id = p.id || `${p.owner}-${p.spawnTime || ''}`
+        const tracked = projectileTracking.get(id)
+        if (tracked) {
+          const newDirection = p.x > tracked.lastX ? 1 : (p.x < tracked.lastX ? -1 : tracked.lastDirection)
+          if (tracked.lastDirection !== 0 && newDirection !== 0 && tracked.lastDirection !== newDirection) {
+            // direction flipped, must have bounced off a wall
+            // figure out which wall based on which edge the projectile is near
+            const bounceX = p.x < 50 ? 12 : (p.x > canvas.width - 50 ? canvas.width - 12 : p.x)
+            bounceEffects.push({
+              x: bounceX,
+              y: p.y,
+              lifetime: 12,
+              maxLifetime: 12,
+            })
+          }
+          newProjectileTracking.set(id, { lastX: p.x, lastDirection: newDirection })
+        } else {
+          newProjectileTracking.set(id, { lastX: p.x, lastDirection: 0 })
+        }
+      })
+      projectileTracking = newProjectileTracking
 
       if (state.phase !== previousPhase) {
         if (state.phase === 'phase1') {
@@ -216,7 +245,6 @@ function GameCanvas({ slot }) {
           hitFlashes[slot].lifetime = hitFlashes[slot].maxLifetime
         }
 
-        // detect ship destruction (health dropping to 0) and spawn an explosion
         if (newHealth <= 0 && previousHealth[slot] > 0) {
           spawnShipExplosion(newPlayer.x + 20, newPlayer.y + 22, slot === 'player1' ? '#00ff88' : '#ff4466')
         }
@@ -227,7 +255,6 @@ function GameCanvas({ slot }) {
       gameState = state
     })
 
-    // create an explosion at a position with particles flying in random directions
     function spawnShipExplosion(x, y, color) {
       const particles = []
       for (let i = 0; i < 16; i++) {
@@ -378,13 +405,10 @@ function GameCanvas({ slot }) {
       ctx.fillRect(x - 4, y - 4, w + 8, h + 8)
     }
 
-    // draw a ship explosion with multiple expanding rings and outward-flying particles
-    // particles update positions each frame based on their velocity
     function drawShipExplosion(explosion) {
       const progress = 1 - (explosion.lifetime / explosion.maxLifetime)
       const opacity = explosion.lifetime / explosion.maxLifetime
 
-      // outer shockwave ring (white)
       const outerRadius = 10 + progress * 50
       ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.8})`
       ctx.lineWidth = 4
@@ -392,7 +416,6 @@ function GameCanvas({ slot }) {
       ctx.arc(explosion.x, explosion.y, outerRadius, 0, Math.PI * 2)
       ctx.stroke()
 
-      // middle ring (player color)
       const middleRadius = 5 + progress * 35
       const colorRgb = explosion.color === '#00ff88' ? '0, 255, 136' : '255, 68, 102'
       ctx.strokeStyle = `rgba(${colorRgb}, ${opacity})`
@@ -401,17 +424,14 @@ function GameCanvas({ slot }) {
       ctx.arc(explosion.x, explosion.y, middleRadius, 0, Math.PI * 2)
       ctx.stroke()
 
-      // bright core
       ctx.fillStyle = `rgba(255, 255, 200, ${opacity * 0.9})`
       ctx.beginPath()
       ctx.arc(explosion.x, explosion.y, 8 * opacity, 0, Math.PI * 2)
       ctx.fill()
 
-      // update and draw particles
       explosion.particles.forEach((particle) => {
         particle.x += particle.vx
         particle.y += particle.vy
-        // simulate slight gravity/friction
         particle.vy += 0.05
         particle.vx *= 0.98
         particle.vy *= 0.98
@@ -419,6 +439,26 @@ function GameCanvas({ slot }) {
         ctx.fillStyle = `rgba(${colorRgb}, ${opacity})`
         ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4)
       })
+    }
+
+    // draw a small spark effect at the wall bounce point
+    // a quick burst of bright sparks that fade fast since bounces happen often
+    function drawBounceEffect(effect) {
+      const opacity = effect.lifetime / effect.maxLifetime
+      const radius = (1 - opacity) * 12 + 4
+
+      // bright white center spark
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius * 0.4, 0, Math.PI * 2)
+      ctx.fill()
+
+      // yellow outer ring
+      ctx.strokeStyle = `rgba(255, 230, 100, ${opacity * 0.8})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2)
+      ctx.stroke()
     }
 
     function drawAsteroid(a) {
@@ -560,7 +600,6 @@ function GameCanvas({ slot }) {
       const p1 = gameState.players.player1
       const p2 = gameState.players.player2
 
-      // only draw ships if they still have health
       if ((p1.health !== undefined ? p1.health : 1) > 0) {
         ctx.font = '11px monospace'
         ctx.textAlign = 'center'
@@ -602,7 +641,16 @@ function GameCanvas({ slot }) {
         return false
       })
 
-      // tick down ship explosions and remove dead ones
+      // tick down bounce effects and remove dead ones
+      bounceEffects = bounceEffects.filter((effect) => {
+        if (effect.lifetime > 0) {
+          drawBounceEffect(effect)
+          effect.lifetime -= 1
+          return true
+        }
+        return false
+      })
+
       shipExplosions = shipExplosions.filter((explosion) => {
         if (explosion.lifetime > 0) {
           drawShipExplosion(explosion)
