@@ -40,6 +40,13 @@ function App() {
       setScreen('game')
     })
 
+    // player 1's screen is not updating when player 2 joins. added new match_started event to tell player 1 to get in game -JH
+    s.on('match_started', () => {
+    console.log('match started')
+    setScreen('game')
+    })
+    // end of new code block -JH
+
     s.on('join_failed', ({ reason }) => {
       console.log('join failed:', reason)
       setJoinError(reason || 'Could not join game')
@@ -54,6 +61,7 @@ function App() {
     return () => {
       s.off('game_created')
       s.off('game_joined')
+      s.off('match_started') // added to return -JH
       s.off('join_failed')
       s.off('end_of_match')
     }

@@ -45,14 +45,23 @@ class RoomManager {
         }
 
     oneTick(){
-        //iterate through rooms
         for (const room of this.roomMap.values()){
-            //call room.tick() on active rooms
-            if (room.phase === "phase1" || room.phase === "phase2"){
-                // broadcast room states
-
+            if (room.phase === 'phase1' || room.phase === 'phase2'){
                 const roomData = room.tick();
                 this.io.to(room.id).emit('gameState', roomData);
+                
+                // If match is ended, emit final result
+                if (room.phase === 'ended') {
+                    const p1 = room.playerMap.player1;
+                    const p2 = room.playerMap.player2;
+                    this.io.to(room.id).emit('end_of_match', {
+                        winner: room.winner,
+                        finalScores: {
+                            [p1 ? p1.userName : 'player1']: p1 ? p1.score : 0,
+                            [p2 ? p2.userName : 'player2']: p2 ? p2.score : 0
+                        }
+                    });
+                }
             }
         }
     }
