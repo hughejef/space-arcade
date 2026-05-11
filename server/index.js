@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const RoomManager = require('./game/RoomManager.js');
 const { TICK } = require('./game/constants.js');
 
+
 const allowedInput = ['left', 'right', 'shoot'];
 
 const app = express();
@@ -47,6 +48,12 @@ io.on('connection', (socket) => {
     }
     socket.join(room.id);
     socket.emit('game_joined', { matchCode: room.id, slot });
+
+    // need to move both players to arena when game is full
+    // AI suggested a match_started event to ensure player 1 joins game upon player 2 joining
+    if (room.isFull()) {
+      io.to(room.id).emit('match_started');
+    }
   });
 
   socket.on('disconnecting', () => {
