@@ -8,9 +8,10 @@ import GameOver from './GameOver'
 
 let socket = null
 
+// Railway for online play socket connecton -jh
 function getSocket() {
   if (!socket) {
-    socket = io('http://localhost:3001')
+    socket = io('https://space-arcade-production.up.railway.app')
   }
   return socket
 }
