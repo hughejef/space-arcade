@@ -5,7 +5,7 @@ import Lobby from './Lobby'
 import JoinGame from './JoinGame'
 import Leaderboard from './Leaderboard'
 import GameOver from './GameOver'
-import { playSound } from './audio'
+import { playSound, startBgMusic, stopBgMusic } from './audio'
 
 let socket = null
 
@@ -68,6 +68,17 @@ function App() {
       s.off('end_of_match')
     }
   }, [])
+
+  // start background music on menu/lobby/join/leaderboard screens
+  // stop it when the game starts so it doesnt compete with sound effects
+  // game over also gets music since theres victory/defeat sounds but no constant gameplay sounds
+  useEffect(() => {
+    if (screen === 'game') {
+      stopBgMusic()
+    } else {
+      startBgMusic()
+    }
+  }, [screen])
 
   const handleCreateGame = () => {
     const s = getSocket()
