@@ -50,20 +50,23 @@ class RoomManager {
             if (room.phase === 'phase1' || room.phase === 'phase2'){
                 const roomData = room.tick();
                 this.io.to(room.id).emit('gameState', roomData);
-                
-                // If match is ended, emit final result and (PR3) save scores to database
-                const p1 = room.playerMap.player1;
-                const p2 = room.playerMap.player2;
-                if (p1) saveScore(p1.userName, p1.score);
-                if (p2) saveScore(p2.userName, p2.score);
-                this.io.to(room.id).emit('end_of_match', {
-                    winner: room.winner,
-                    finalScores: {
-                        [p1 ? p1.userName : 'player1']: p1 ? p1.score : 0,
-                        [p2 ? p2.userName : 'player2']: p2 ? p2.score : 0
-                    }
-                });
-                this.deleteRoom(room.id); // delete room after match ends
+
+                // If match is now ended (room.tick() may have transitioned phase to 'ended'),
+                // emit final result, save scores to database, and clean up the room
+                if (room.phase === 'ended') {
+                    const p1 = room.playerMap.player1;
+                    const p2 = room.playerMap.player2;
+                    if (p1) saveScore(p1.userName, p1.score);
+                    if (p2) saveScore(p2.userName, p2.score);
+                    this.io.to(room.id).emit('end_of_match', {
+                        winner: room.winner,
+                        finalScores: {
+                            [p1 ? p1.userName : 'player1']: p1 ? p1.score : 0,
+                            [p2 ? p2.userName : 'player2']: p2 ? p2.score : 0
+                        }
+                    });
+                    this.deleteRoom(room.id); // delete room after match ends
+                }
             }
         }
     }
