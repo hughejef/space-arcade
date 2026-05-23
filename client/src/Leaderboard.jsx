@@ -1,35 +1,8 @@
 import { useState, useEffect } from 'react'
 
-// each entry has username, score, and timestamp of when the score was set
-const MOCK_LEADERBOARD = {
-  daily: [
-    { rank: 1, userName: 'StarFox', score: 1850, timestamp: '2026-04-30T14:22:00Z' },
-    { rank: 2, userName: 'NovaPilot', score: 1640, timestamp: '2026-04-30T11:15:00Z' },
-    { rank: 3, userName: 'CometRider', score: 1520, timestamp: '2026-04-30T18:47:00Z' },
-    { rank: 4, userName: 'AstroAce', score: 1410, timestamp: '2026-04-30T09:33:00Z' },
-    { rank: 5, userName: 'VoidHunter', score: 1290, timestamp: '2026-04-30T20:12:00Z' },
-  ],
-  weekly: [
-    { rank: 1, userName: 'GalaxyGod', score: 2340, timestamp: '2026-04-28T16:30:00Z' },
-    { rank: 2, userName: 'StarFox', score: 1850, timestamp: '2026-04-30T14:22:00Z' },
-    { rank: 3, userName: 'PulsarKing', score: 1780, timestamp: '2026-04-26T13:05:00Z' },
-    { rank: 4, userName: 'NovaPilot', score: 1640, timestamp: '2026-04-30T11:15:00Z' },
-    { rank: 5, userName: 'CometRider', score: 1520, timestamp: '2026-04-30T18:47:00Z' },
-  ],
-  monthly: [
-    { rank: 1, userName: 'NebulaQueen', score: 3120, timestamp: '2026-04-12T22:18:00Z' },
-    { rank: 2, userName: 'GalaxyGod', score: 2340, timestamp: '2026-04-28T16:30:00Z' },
-    { rank: 3, userName: 'BlackHole99', score: 2180, timestamp: '2026-04-15T10:42:00Z' },
-    { rank: 4, userName: 'StarFox', score: 1850, timestamp: '2026-04-30T14:22:00Z' },
-    { rank: 5, userName: 'PulsarKing', score: 1780, timestamp: '2026-04-26T13:05:00Z' },
-  ],
-}
-
-// flag to switch between mock data and live API
-// flip this to true once Jeffrey's leaderboard backend is hooked up
-const USE_MOCK_DATA = true
-
-const API_URL = 'http://localhost:3001'
+// the endpoint is GET /leaderboard?period=daily|weekly|monthly
+// it returns an array of { playerName, score, timestamp } where timestamp is Unix seconds
+const API_URL = 'https://space-arcade-production.up.railway.app'
 
 // pick a color based on the player's rank
 // gold for 1st, silver for 2nd, bronze for 3rd, white for the rest
@@ -40,30 +13,31 @@ function getRankColor(rank) {
   return '#ffffff'
 }
 
-// format an ISO timestamp into something readable
-// example: "2026-04-30T14:22:00Z" becomes "Apr 30"
-function formatDate(timestamp) {
-  const date = new Date(timestamp)
+// format a Unix timestamp (seconds since epoch) into something readable
+// example: 1779546506 becomes "May 23"
+function formatDate(unixSeconds) {
+  const date = new Date(unixSeconds * 1000)
   const month = date.toLocaleString('en-US', { month: 'short' })
   const day = date.getDate()
   return `${month} ${day}`
 }
 
-// fetch scores for a given period from either the mock data or the real API
-// returns a promise that resolves to an array of score entries
+// fetch scores for a given period from leaderboard API
+// his API returns { playerName, score, timestamp } objects, no rank field
+// so we calculate rank from the array index (results come back sorted by score DESC)
 async function fetchScores(period) {
-  if (USE_MOCK_DATA) {
-    // simulate a small delay so the loading state is visible
-    await new Promise((resolve) => setTimeout(resolve, 200))
-    return MOCK_LEADERBOARD[period] || []
-  }
-
-  // real API call once backend is ready
   const response = await fetch(`${API_URL}/leaderboard?period=${period}`)
   if (!response.ok) {
     throw new Error(`Server returned ${response.status}`)
   }
-  return await response.json()
+  const rawScores = await response.json()
+  // normalize the API response to add rank and use a consistent field name
+  return rawScores.map((entry, index) => ({
+    rank: index + 1,
+    userName: entry.playerName,
+    score: entry.score,
+    timestamp: entry.timestamp,
+  }))
 }
 
 function Leaderboard({ onBack }) {
