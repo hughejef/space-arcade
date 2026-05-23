@@ -5,6 +5,7 @@ import Lobby from './Lobby'
 import JoinGame from './JoinGame'
 import Leaderboard from './Leaderboard'
 import GameOver from './GameOver'
+import { playSound } from './audio'
 
 let socket = null
 
@@ -197,6 +198,7 @@ function GameCanvas({ slot }) {
             lifetime: 20,
             maxLifetime: 20,
           })
+          playSound('asteroidHit')
         }
       })
 
@@ -208,6 +210,10 @@ function GameCanvas({ slot }) {
       state.projectiles.forEach((p) => {
         const id = p.id || `${p.owner}-${p.spawnTime || ''}`
         const tracked = projectileTracking.get(id)
+        if (!tracked && !projectileTracking.has(id)) {
+          // this is a brand new projectile, play the laser sound
+          playSound('laser')
+        }
         if (tracked) {
           const newDirection = p.x > tracked.lastX ? 1 : (p.x < tracked.lastX ? -1 : tracked.lastDirection)
           if (tracked.lastDirection !== 0 && newDirection !== 0 && tracked.lastDirection !== newDirection) {
@@ -220,6 +226,7 @@ function GameCanvas({ slot }) {
               lifetime: 12,
               maxLifetime: 12,
             })
+            playSound('bounce')
           }
           newProjectileTracking.set(id, { lastX: p.x, lastDirection: newDirection })
         } else {
@@ -252,10 +259,12 @@ function GameCanvas({ slot }) {
         const newHealth = newPlayer.health !== undefined ? newPlayer.health : 1
         if (newHealth < previousHealth[slot]) {
           hitFlashes[slot].lifetime = hitFlashes[slot].maxLifetime
+          playSound('shipHit')
         }
 
         if (newHealth <= 0 && previousHealth[slot] > 0) {
           spawnShipExplosion(newPlayer.x + 20, newPlayer.y + 22, slot === 'player1' ? '#00ff88' : '#ff4466')
+          playSound('shipExplosion')
         }
 
         previousHealth[slot] = newHealth

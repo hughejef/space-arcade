@@ -1,7 +1,20 @@
+import { useEffect } from 'react'
+import { playSound } from './audio'
+
 function GameOver({ matchResult, slot, onPlayAgain }) {
   const didIWin = matchResult?.winner === slot
   const winnerColor = didIWin ? '#00ff88' : '#ff4466'
   const winnerText = didIWin ? 'VICTORY' : 'DEFEAT'
+
+  // play victory or defeat sound once when the game over screen mounts
+  // the empty dependency array means this only runs on first render
+  useEffect(() => {
+    if (didIWin) {
+      playSound('victory')
+    } else {
+      playSound('defeat')
+    }
+  }, [])
 
   return (
     <div style={{
