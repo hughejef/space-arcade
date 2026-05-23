@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const RoomManager = require('./game/RoomManager.js');
 const { TICK } = require('./game/constants.js');
+const { initializeDatabase, saveScore, getTopScores } = require('./Database.js');
 
 
 const allowedInput = ['left', 'right', 'shoot'];
@@ -12,8 +13,15 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' }
 });
+
 app.get('/', (req, res) => {
   res.send('Space Arcade server is running');
+});
+
+app.get('/leaderboard', (req, res) => {
+    const { period } = req.query;
+    const scores = getTopScores(period);
+    res.json(scores);
 });
 
 const roomManager = new RoomManager(io);
@@ -87,5 +95,6 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
+  initializeDatabase();
   console.log(`Server listening on port ${PORT}`);
 });
