@@ -1,6 +1,15 @@
+import { useState } from 'react'
 import MuteToggle from './MuteToggle'
 
 function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }) {
+  const [hoveredButton, setHoveredButton] = useState(null)
+
+  // helper to determine if a button should show its hover state
+  // returns true if this button is hovered AND it's not disabled
+  const isHovered = (buttonName, disabled = false) => {
+    return hoveredButton === buttonName && !disabled
+  }
+
   return (
     <div style={{
       display: 'flex',
@@ -57,10 +66,12 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }
           }}>
             <button
               disabled={!userName.trim()}
+              onMouseEnter={() => setHoveredButton('create')}
+              onMouseLeave={() => setHoveredButton(null)}
               onClick={onCreateGame}
               style={{
                 padding: '14px',
-                background: userName.trim() ? '#00ff88' : '#00ff8844',
+                background: userName.trim() ? (isHovered('create') ? '#00cc66' : '#00ff88') : '#00ff8844',
                 color: '#0a0a2e',
                 border: 'none',
                 borderRadius: '6px',
@@ -68,15 +79,19 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }
                 fontFamily: 'monospace',
                 fontWeight: 'bold',
                 cursor: userName.trim() ? 'pointer' : 'not-allowed',
+                transform: isHovered('create') ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.15s ease',
               }}>
               CREATE GAME
             </button>
             <button
               disabled={!userName.trim()}
+              onMouseEnter={() => setHoveredButton('join')}
+              onMouseLeave={() => setHoveredButton(null)}
               onClick={onJoinGame}
               style={{
                 padding: '14px',
-                background: 'transparent',
+                background: isHovered('join') ? '#00ff8822' : 'transparent',
                 color: userName.trim() ? '#00ff88' : '#00ff8844',
                 border: `2px solid ${userName.trim() ? '#00ff88' : '#00ff8844'}`,
                 borderRadius: '6px',
@@ -84,34 +99,44 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }
                 fontFamily: 'monospace',
                 fontWeight: 'bold',
                 cursor: userName.trim() ? 'pointer' : 'not-allowed',
+                transform: isHovered('join') ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.15s ease',
               }}>
               JOIN GAME
             </button>
             <button
+              onMouseEnter={() => setHoveredButton('leaderboard')}
+              onMouseLeave={() => setHoveredButton(null)}
               onClick={onLeaderboard}
               style={{
                 padding: '14px',
-                background: 'transparent',
-                color: '#888',
-                border: '2px solid #444',
+                background: isHovered('leaderboard') ? '#ffffff11' : 'transparent',
+                color: isHovered('leaderboard') ? '#bbbbbb' : '#888',
+                border: `2px solid ${isHovered('leaderboard') ? '#666' : '#444'}`,
                 borderRadius: '6px',
                 fontSize: '16px',
                 fontFamily: 'monospace',
                 cursor: 'pointer',
+                transform: isHovered('leaderboard') ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.15s ease',
               }}>
               LEADERBOARD
             </button>
             <button
+              onMouseEnter={() => setHoveredButton('quit')}
+              onMouseLeave={() => setHoveredButton(null)}
               onClick={() => window.close()}
               style={{
                 padding: '14px',
-                background: 'transparent',
+                background: isHovered('quit') ? '#ff446622' : 'transparent',
                 color: '#ff4466',
-                border: '2px solid #ff446644',
+                border: `2px solid ${isHovered('quit') ? '#ff4466' : '#ff446644'}`,
                 borderRadius: '6px',
                 fontSize: '16px',
                 fontFamily: 'monospace',
                 cursor: 'pointer',
+                transform: isHovered('quit') ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.15s ease',
               }}>
               QUIT
             </button>
