@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { toggleMute, isMuted } from './audio'
 
 // reusable mute toggle button that can be placed in any menu screen
-// shows a speaker emoji that flips between sound-on and muted states
-// position prop allows callers to pin it wherever they want via CSS positioning
+// shows a speaker emoji with text label that flips between sound on and muted states
 function MuteToggle() {
   const [muted, setMuted] = useState(isMuted())
 
@@ -24,12 +23,17 @@ function MuteToggle() {
         border: `2px solid ${muted ? '#444' : '#00ff88'}`,
         borderRadius: '6px',
         padding: '6px 12px',
-        fontSize: '14px',
+        fontSize: '12px',
         fontFamily: 'monospace',
+        fontWeight: 'bold',
         cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
       }}
-      title={muted ? 'Unmute' : 'Mute'}>
-      {muted ? '🔇' : '🔊'}
+      title={muted ? 'Click to unmute' : 'Click to mute'}>
+      <span style={{ fontSize: '14px' }}>{muted ? '🔇' : '🔊'}</span>
+      <span>SOUND {muted ? 'OFF' : 'ON'}</span>
     </button>
   )
 }
