@@ -1,4 +1,14 @@
+import { useState } from 'react'
+import { toggleMute, isMuted } from './audio'
+
 function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }) {
+  const [muted, setMuted] = useState(isMuted())
+
+  const handleMuteToggle = () => {
+    const newMutedState = toggleMute()
+    setMuted(newMutedState)
+  }
+
   return (
     <div style={{
       display: 'flex',
@@ -19,6 +29,26 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }
         fontFamily: 'monospace',
         position: 'relative',
       }}>
+        {/* mute toggle button in the top-right corner of the menu box */}
+        <button
+          onClick={handleMuteToggle}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'transparent',
+            color: muted ? '#888' : '#00ff88',
+            border: `2px solid ${muted ? '#444' : '#00ff88'}`,
+            borderRadius: '6px',
+            padding: '6px 12px',
+            fontSize: '14px',
+            fontFamily: 'monospace',
+            cursor: 'pointer',
+          }}
+          title={muted ? 'Unmute' : 'Mute'}>
+          {muted ? '🔇' : '🔊'}
+        </button>
+
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ color: '#00ff88', fontSize: '48px', marginBottom: '8px' }}>SPACE ARCADE</h1>
           <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>1v1 space shooter</p>
