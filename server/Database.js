@@ -53,7 +53,5 @@ function getTopScores(period) {                // period is 'daily', 'weekly', o
 function clearScores() {
     db.exec('DELETE FROM Leaderboard');
 }
+
 module.exports = { initializeDatabase, saveScore, getTopScores, clearScores };
-
-
-module.exports = { initializeDatabase, saveScore, getTopScores };
