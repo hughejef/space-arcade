@@ -491,11 +491,32 @@ function GameCanvas({ slot }) {
     }
 
     function drawAsteroid(a) {
-      const color = '#ff8800'
+      // determine which row this asteroid is in based on its y position
+      // server uses gridTop=220 and height=20 so row = (y - 220) / 20
+      const row = Math.round((a.y - 220) / 20)
+      const ROW_COLORS = [
+        '#ff4466', // row 0 - red/pink (top)
+        '#ff8800', // row 1 - orange
+        '#ffdd44', // row 2 - yellow
+        '#00ff88', // row 3 - green (bottom)
+      ]
+      const color = ROW_COLORS[row] || '#ff8800'
+
+      // fill the asteroid block
       ctx.fillStyle = color
-      ctx.fillRect(a.x, a.y, 60, 22)
+      ctx.fillRect(a.x, a.y, 40, 20)
+
+      // subtle white border so adjacent blocks are visually separated
+      ctx.strokeStyle = '#ffffff44'
+      ctx.lineWidth = 1
+      ctx.strokeRect(a.x, a.y, 40, 20)
+
+      // inner highlight on the top edge gives a 3d brick look
       ctx.strokeStyle = '#ffffff22'
-      ctx.strokeRect(a.x, a.y, 60, 22)
+      ctx.beginPath()
+      ctx.moveTo(a.x + 1, a.y + 1)
+      ctx.lineTo(a.x + 39, a.y + 1)
+      ctx.stroke()
     }
 
     function drawProjectile(p) {
