@@ -29,10 +29,10 @@ const PROJECTILE = {
 const ASTEROID = {
     width: 40,
     height: 20,
-    rows: 6,
-    cols: 14,
-    gridTop: 200,    // top of asteroid zone --- derive bottom of grid with 'gridTop + (rows * height)'
-    gridLeft: 60     // left start of asteroid zone --- derive gridRight with 'gridLeft + (cols * width)'
+    rows: 4,
+    cols: 19,
+    gridTop: 220,    // top of asteroid zone --- derive bottom of grid with 'gridTop + (rows * height)'
+    gridLeft: 20     // left start of asteroid zone --- derive gridRight with 'gridLeft + (cols * width)'
 };
 
 
