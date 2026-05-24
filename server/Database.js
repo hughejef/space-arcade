@@ -54,6 +54,3 @@ function clearScores() {
     db.exec('DELETE FROM Leaderboard');
 }
 module.exports = { initializeDatabase, saveScore, getTopScores, clearScores };
-
-
-module.exports = { initializeDatabase, saveScore, getTopScores };
