@@ -1,6 +1,18 @@
+import { useState, useEffect } from 'react'
 import MuteToggle from './MuteToggle'
 
 function Lobby({ userName, slot, matchCode, onBack }) {
+  // animated dots that cycle from 0 to 3 every 500ms
+  // makes the "WAITING FOR OPPONENT" header feel less static
+  const [dots, setDots] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots((prev) => (prev + 1) % 4)
+    }, 500)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div style={{
       display: 'flex',
@@ -25,7 +37,7 @@ function Lobby({ userName, slot, matchCode, onBack }) {
 
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '8px' }}>
-            WAITING FOR OPPONENT
+            WAITING FOR OPPONENT{'.'.repeat(dots)}
           </h2>
           <p style={{ color: '#00ff88aa', fontSize: '12px', marginBottom: '4px' }}>
             Playing as: {userName}
@@ -42,6 +54,7 @@ function Lobby({ userName, slot, matchCode, onBack }) {
             borderRadius: '8px',
             padding: '20px 40px',
             marginBottom: '30px',
+            boxShadow: '0 0 20px #00ff8844',
           }}>
             <span style={{
               color: '#00ff88',

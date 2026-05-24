@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import MuteToggle from './MuteToggle'
 
+// Jeffrey's leaderboard API lives on the Railway server
 // the endpoint is GET /leaderboard?period=daily|weekly|monthly
 // it returns an array of { playerName, score, timestamp } where timestamp is Unix seconds
 const API_URL = 'https://space-arcade-production.up.railway.app'
@@ -13,6 +15,15 @@ function getRankColor(rank) {
   return '#ffffff'
 }
 
+// pick an emoji medal for the top 3 ranks, blank for the rest
+// adds a bit of visual flair to the top of the leaderboard
+function getRankEmoji(rank) {
+  if (rank === 1) return '🥇'
+  if (rank === 2) return '🥈'
+  if (rank === 3) return '🥉'
+  return ''
+}
+
 // format a Unix timestamp (seconds since epoch) into something readable
 // example: 1779546506 becomes "May 23"
 function formatDate(unixSeconds) {
@@ -22,7 +33,7 @@ function formatDate(unixSeconds) {
   return `${month} ${day}`
 }
 
-// fetch scores for a given period from leaderboard API
+// fetch scores for a given period from Jeffrey's leaderboard API
 // his API returns { playerName, score, timestamp } objects, no rank field
 // so we calculate rank from the array index (results come back sorted by score DESC)
 async function fetchScores(period) {
@@ -31,7 +42,6 @@ async function fetchScores(period) {
     throw new Error(`Server returned ${response.status}`)
   }
   const rawScores = await response.json()
-  // normalize the API response to add rank and use a consistent field name
   return rawScores.map((entry, index) => ({
     rank: index + 1,
     userName: entry.playerName,
@@ -45,6 +55,18 @@ function Leaderboard({ onBack }) {
   const [scores, setScores] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // animated loading dots that cycle from 0 to 3 every 400ms
+  // makes the "Loading scores" message feel more alive while waiting
+  const [loadingDots, setLoadingDots] = useState(0)
+
+  useEffect(() => {
+    if (!loading) return
+    const interval = setInterval(() => {
+      setLoadingDots((prev) => (prev + 1) % 4)
+    }, 400)
+    return () => clearInterval(interval)
+  }, [loading])
 
   // load scores whenever the period changes
   useEffect(() => {
@@ -72,7 +94,6 @@ function Leaderboard({ onBack }) {
 
     loadScores()
 
-    // cleanup so we don't update state if the component unmounts mid-fetch
     return () => {
       cancelled = true
     }
@@ -96,9 +117,19 @@ function Leaderboard({ onBack }) {
         justifyContent: 'center',
         alignItems: 'center',
         fontFamily: 'monospace',
+        position: 'relative',
       }}>
+        <MuteToggle />
+
         <div style={{ textAlign: 'center', width: '90%' }}>
-          <h2 style={{ color: '#ffff00', fontSize: '32px', marginBottom: '16px' }}>LEADERBOARD</h2>
+          <h2 style={{
+            color: '#ffff00',
+            fontSize: '32px',
+            marginBottom: '16px',
+            textShadow: '0 0 20px #ffff0066',
+          }}>
+            🏆 LEADERBOARD 🏆
+          </h2>
 
           <div style={{
             display: 'flex',
@@ -121,6 +152,7 @@ function Leaderboard({ onBack }) {
                   fontWeight: period === p ? 'bold' : 'normal',
                   cursor: 'pointer',
                   textTransform: 'uppercase',
+                  transition: 'all 0.15s ease',
                 }}>
                 {p}
               </button>
@@ -128,15 +160,37 @@ function Leaderboard({ onBack }) {
           </div>
 
           {loading && (
-            <p style={{ color: '#888', fontSize: '14px' }}>Loading scores...</p>
+            <div style={{
+              padding: '40px 20px',
+              color: '#ffff00',
+              fontSize: '14px',
+            }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>⚡</div>
+              <p>Loading scores{'.'.repeat(loadingDots)}</p>
+            </div>
           )}
 
           {!loading && error && (
-            <p style={{ color: '#ff4466', fontSize: '14px' }}>{error}</p>
+            <div style={{
+              padding: '40px 20px',
+              color: '#ff4466',
+              fontSize: '14px',
+            }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>⚠️</div>
+              <p>{error}</p>
+            </div>
           )}
 
           {!loading && !error && scores.length === 0 && (
-            <p style={{ color: '#888', fontSize: '14px' }}>No scores yet for this period</p>
+            <div style={{
+              padding: '40px 20px',
+              color: '#888',
+              fontSize: '14px',
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🚀</div>
+              <p style={{ marginBottom: '4px' }}>No scores yet for this period</p>
+              <p style={{ color: '#666', fontSize: '12px' }}>Be the first to set a record!</p>
+            </div>
           )}
 
           {!loading && !error && scores.length > 0 && (
@@ -150,7 +204,7 @@ function Leaderboard({ onBack }) {
               {/* column headers for the score list */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '50px 1fr 100px 80px',
+                gridTemplateColumns: '60px 1fr 100px 80px',
                 padding: '6px 12px',
                 color: '#888',
                 fontSize: '11px',
@@ -167,14 +221,17 @@ function Leaderboard({ onBack }) {
               {scores.map((entry) => (
                 <div key={entry.rank} style={{
                   display: 'grid',
-                  gridTemplateColumns: '50px 1fr 100px 80px',
+                  gridTemplateColumns: '60px 1fr 100px 80px',
                   padding: '8px 12px',
                   fontSize: '14px',
                   color: getRankColor(entry.rank),
                   fontWeight: entry.rank <= 3 ? 'bold' : 'normal',
                   borderBottom: '1px solid #4444ff22',
+                  alignItems: 'center',
                 }}>
-                  <span style={{ textAlign: 'left' }}>#{entry.rank}</span>
+                  <span style={{ textAlign: 'left' }}>
+                    {getRankEmoji(entry.rank) || `#${entry.rank}`}
+                  </span>
                   <span style={{ textAlign: 'left' }}>{entry.userName}</span>
                   <span style={{ textAlign: 'right' }}>{entry.score.toLocaleString()}</span>
                   <span style={{ textAlign: 'right', color: '#888', fontWeight: 'normal' }}>
