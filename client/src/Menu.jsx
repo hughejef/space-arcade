@@ -34,7 +34,54 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }
 
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ color: '#00ff88', fontSize: '48px', marginBottom: '8px' }}>SPACE ARCADE</h1>
-          <p style={{ color: '#888', fontSize: '14px', marginBottom: '30px' }}>1v1 space shooter</p>
+          <p style={{ color: '#888', fontSize: '14px', marginBottom: '20px' }}>1v1 space shooter</p>
+
+          {/* controls hint section so new players know how to play */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '20px',
+            marginBottom: '20px',
+            fontSize: '11px',
+            color: '#888',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <kbd style={{
+                background: '#1a1a3e',
+                border: '1px solid #4444ff',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                color: '#00ff88',
+                fontFamily: 'monospace',
+                fontWeight: 'bold',
+              }}>←</kbd>
+              <span>LEFT</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <kbd style={{
+                background: '#1a1a3e',
+                border: '1px solid #4444ff',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                color: '#00ff88',
+                fontFamily: 'monospace',
+                fontWeight: 'bold',
+              }}>→</kbd>
+              <span>RIGHT</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <kbd style={{
+                background: '#1a1a3e',
+                border: '1px solid #4444ff',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                color: '#00ff88',
+                fontFamily: 'monospace',
+                fontWeight: 'bold',
+              }}>SPACE</kbd>
+              <span>SHOOT</span>
+            </div>
+          </div>
 
           <input
             type="text"
