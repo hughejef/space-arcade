@@ -27,7 +27,7 @@ const ASTEROID = {
     height: 20,
     rows: 5,
     cols: 18,
-    gridTop: 280,    // top of asteroid zone --- derive bottom of grid with 'gridTop + (rows * height)'
+    gridTop: 240,    // top of asteroid zone --- derive bottom of grid with 'gridTop + (rows * height)'
     gridLeft: 40     // left start of asteroid zone --- derive gridRight with 'gridLeft + (cols * width)'
 };
 module.exports = { ARENA, SPAWN, SHIP, TICK, PROJECTILE, ASTEROID };
