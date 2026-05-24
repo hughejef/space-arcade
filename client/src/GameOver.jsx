@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { playSound } from './audio'
+import MuteToggle from './MuteToggle'
 
 function GameOver({ matchResult, slot, onPlayAgain }) {
   const didIWin = matchResult?.winner === slot
@@ -36,6 +37,8 @@ function GameOver({ matchResult, slot, onPlayAgain }) {
         fontFamily: 'monospace',
         position: 'relative',
       }}>
+        <MuteToggle />
+
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ color: winnerColor, fontSize: '48px', marginBottom: '8px' }}>
             {winnerText}

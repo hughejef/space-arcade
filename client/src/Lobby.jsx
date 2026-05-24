@@ -1,3 +1,5 @@
+import MuteToggle from './MuteToggle'
+
 function Lobby({ userName, slot, matchCode, onBack }) {
   return (
     <div style={{
@@ -19,6 +21,8 @@ function Lobby({ userName, slot, matchCode, onBack }) {
         fontFamily: 'monospace',
         position: 'relative',
       }}>
+        <MuteToggle />
+
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ color: '#00ff88', fontSize: '24px', marginBottom: '8px' }}>
             WAITING FOR OPPONENT

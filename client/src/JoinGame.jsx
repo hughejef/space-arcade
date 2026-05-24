@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import MuteToggle from './MuteToggle'
 
 function JoinGame({ userName, joinError, onJoin, onBack }) {
   const [joinCode, setJoinCode] = useState('')
@@ -34,6 +35,8 @@ function JoinGame({ userName, joinError, onJoin, onBack }) {
         fontFamily: 'monospace',
         position: 'relative',
       }}>
+        <MuteToggle />
+
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ color: '#ff4466', fontSize: '24px', marginBottom: '8px' }}>
             JOIN GAME
