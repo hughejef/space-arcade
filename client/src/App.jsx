@@ -490,17 +490,15 @@ function GameCanvas({ slot }) {
       ctx.stroke()
     }
 
-    function drawAsteroid(a) {
-      // determine which row this asteroid is in based on its y position
-      // server uses gridTop=220 and height=20 so row = (y - 220) / 20
-      const row = Math.round((a.y - 220) / 20)
+    function drawAsteroid(a, rowIndex) {
       const ROW_COLORS = [
-        '#ff4466', // row 0 - red/pink (top)
-        '#ff8800', // row 1 - orange
-        '#ffdd44', // row 2 - yellow
-        '#00ff88', // row 3 - green (bottom)
+        '#ff4466', // top row - red/pink
+        '#ff8800', // orange
+        '#ffdd44', // yellow
+        '#88ff00', // light green
+        '#00ff88', // green (bottom)
       ]
-      const color = ROW_COLORS[row] || '#ff8800'
+      const color = ROW_COLORS[rowIndex % ROW_COLORS.length]
 
       // fill the asteroid block
       ctx.fillStyle = color
@@ -674,8 +672,10 @@ function GameCanvas({ slot }) {
         }
       }
 
+      const uniqueYValues = [...new Set(gameState.asteroids.map((a) => a.y))].sort((x, y) => x - y)
       gameState.asteroids.forEach((a) => {
-        drawAsteroid(a)
+        const rowIndex = uniqueYValues.indexOf(a.y)
+        drawAsteroid(a, rowIndex)
       })
 
       gameState.projectiles.forEach((p) => {
