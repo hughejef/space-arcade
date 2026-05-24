@@ -4,7 +4,7 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const RoomManager = require('./game/RoomManager.js');
 const { TICK } = require('./game/constants.js');
-const { initializeDatabase, saveScore, getTopScores } = require('./Database.js');
+const { initializeDatabase, saveScore, getTopScores, clearScores } = require('./Database.js');
 
 const allowedInput = ['left', 'right', 'shoot'];
 
@@ -23,6 +23,12 @@ app.get('/leaderboard', (req, res) => {
     const { period } = req.query;
     const scores = getTopScores(period);
     res.json(scores);
+});
+
+// wipe leaderboard for test data. 
+app.delete('/admin/clear-scores', (req, res) => {
+    clearScores();
+    res.json({ message: 'Scores cleared' });
 });
 
 const roomManager = new RoomManager(io);
