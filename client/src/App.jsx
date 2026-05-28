@@ -559,25 +559,37 @@ function GameCanvas({ slot }) {
     }
 
     function drawHealthBar(x, y, width, currentHealth, maxHealth, color) {
-      const fillRatio = Math.max(0, Math.min(1, currentHealth / maxHealth))
-      const barHeight = 4
+      const barHeight = 8
+      const segments = Math.max(1, maxHealth)
+      const gapSize = 2
+      const segmentWidth = (width - gapSize * (segments - 1)) / segments
 
-      ctx.fillStyle = '#222244'
-      ctx.fillRect(x, y, width, barHeight)
+      for (let i = 0; i < segments; i++) {
+        const segmentX = x + i * (segmentWidth + gapSize)
+        const filled = i < currentHealth
 
-      ctx.fillStyle = color
-      ctx.fillRect(x, y, width * fillRatio, barHeight)
+        // background for each segment slot
+        ctx.fillStyle = '#222244'
+        ctx.fillRect(segmentX, y, segmentWidth, barHeight)
 
-      ctx.strokeStyle = '#ffffff44'
-      ctx.lineWidth = 1
-      ctx.strokeRect(x, y, width, barHeight)
+        // colored fill if this segment is earned
+        if (filled) {
+          ctx.fillStyle = color
+          ctx.fillRect(segmentX, y, segmentWidth, barHeight)
+        }
+
+        // thin border around each segment so they read as separate chunks
+        ctx.strokeStyle = '#ffffff44'
+        ctx.lineWidth = 1
+        ctx.strokeRect(segmentX, y, segmentWidth, barHeight)
+      }
     }
 
     function drawScorePanel(x, y, player, color, align) {
       const userName = player.userName || (color === '#00ff88' ? 'P1' : 'P2')
       const score = player.score || 0
       const health = player.health !== undefined ? player.health : 1
-      const maxHealth = 1
+      const maxHealth = player.maxHealth !== undefined ? player.maxHealth : 3
 
       ctx.font = 'bold 14px monospace'
       ctx.textAlign = align
@@ -648,7 +660,10 @@ function GameCanvas({ slot }) {
       const p1 = gameState.players.player1
       const p2 = gameState.players.player2
 
-      if ((p1.health !== undefined ? p1.health : 1) > 0) {
+      // during phase 2, hide ship if health is 0 (player is dead)
+      // during phase 1, always draw ship since health starts at 0 and grows
+      const p1Alive = gameState.phase !== 'phase2' || (p1.health !== undefined ? p1.health : 1) > 0
+      if (p1Alive) {
         ctx.font = '11px monospace'
         ctx.textAlign = 'center'
         ctx.fillStyle = '#00ff88'
@@ -660,7 +675,8 @@ function GameCanvas({ slot }) {
         }
       }
 
-      if ((p2.health !== undefined ? p2.health : 1) > 0) {
+      const p2Alive = gameState.phase !== 'phase2' || (p2.health !== undefined ? p2.health : 1) > 0
+      if (p2Alive) {
         ctx.font = '11px monospace'
         ctx.textAlign = 'center'
         ctx.fillStyle = '#ff4466'
