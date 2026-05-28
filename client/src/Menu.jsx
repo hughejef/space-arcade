@@ -159,35 +159,18 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard, 
               onClick={onLeaderboard}
               style={{
                 padding: '14px',
-                background: isHovered('leaderboard') ? '#ffffff11' : 'transparent',
-                color: isHovered('leaderboard') ? '#bbbbbb' : '#888',
-                border: `2px solid ${isHovered('leaderboard') ? '#666' : '#444'}`,
+                background: isHovered('leaderboard') ? '#ffff0022' : 'transparent',
+                color: '#ffff00',
+                border: `2px solid ${isHovered('leaderboard') ? '#ffff00' : '#ffff0088'}`,
                 borderRadius: '6px',
                 fontSize: '16px',
                 fontFamily: 'monospace',
+                fontWeight: 'bold',
                 cursor: 'pointer',
                 transform: isHovered('leaderboard') ? 'scale(1.02)' : 'scale(1)',
                 transition: 'all 0.15s ease',
               }}>
               LEADERBOARD
-            </button>
-            <button
-              onMouseEnter={() => setHoveredButton('quit')}
-              onMouseLeave={() => setHoveredButton(null)}
-              onClick={() => window.close()}
-              style={{
-                padding: '14px',
-                background: isHovered('quit') ? '#ff446622' : 'transparent',
-                color: '#ff4466',
-                border: `2px solid ${isHovered('quit') ? '#ff4466' : '#ff446644'}`,
-                borderRadius: '6px',
-                fontSize: '16px',
-                fontFamily: 'monospace',
-                cursor: 'pointer',
-                transform: isHovered('quit') ? 'scale(1.02)' : 'scale(1)',
-                transition: 'all 0.15s ease',
-              }}>
-              QUIT
             </button>
           </div>
         </div>
