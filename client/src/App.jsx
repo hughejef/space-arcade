@@ -6,6 +6,7 @@ import JoinGame from './JoinGame'
 import Leaderboard from './Leaderboard'
 import GameOver from './GameOver'
 import { playSound, startBgMusic, stopBgMusic } from './audio'
+import Instructions from './Instructions'
 
 let socket = null
 
@@ -106,6 +107,7 @@ function App() {
         onCreateGame={handleCreateGame}
         onJoinGame={() => setScreen('join')}
         onLeaderboard={() => setScreen('leaderboard')}
+        onHelp={() => setScreen('instructions')}
       />
     )
   }
@@ -134,6 +136,10 @@ function App() {
 
   if (screen === 'leaderboard') {
     return <Leaderboard onBack={() => setScreen('menu')} />
+  }
+
+  if (screen === 'instructions') {
+    return <Instructions onBack={() => setScreen('menu')} />
   }
 
   if (screen === 'gameOver') {

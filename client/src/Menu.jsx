@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import MuteToggle from './MuteToggle'
+import HelpButton from './HelpButton'
 
-function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }) {
+function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard, onHelp }) {
   const [hoveredButton, setHoveredButton] = useState(null)
 
   // helper to determine if a button should show its hover state
@@ -30,6 +31,7 @@ function Menu({ userName, setUserName, onCreateGame, onJoinGame, onLeaderboard }
         fontFamily: 'monospace',
         position: 'relative',
       }}>
+        <HelpButton onClick={onHelp} />
         <MuteToggle />
 
         <div style={{ textAlign: 'center' }}>
