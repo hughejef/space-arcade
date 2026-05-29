@@ -1,15 +1,17 @@
 //Source https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_classes
-
 const { ARENA, SHIP, PROJECTILE }  = require('./constants.js');
-
 class Player {
     // initial plan is to initiate player object with pre-defined socket_id, x_pos, y_pos, and health. 
     // I'm fine with with changing this if we want
-    constructor(socketId, x, y, facing, userName = "HAL9000", maxHealth = 1) {
+    // armor system: health starts at 0 and grows during phase 1 as the player destroys asteroids
+    // (every 10 destroyed = +1 armor, capped at 3). during phase 2 each hit removes 1 armor.
+    constructor(socketId, x, y, facing, userName = "HAL9000", maxHealth = 3) {
         this.id = socketId;
         this.x = x;
         this.y = y;
-        this.health = maxHealth;
+        this.health = 0; // starts at 0, gained during phase 1 by destroying asteroids
+        this.maxHealth = maxHealth; // cap for the armor bar (3 hearts)
+        this.asteroidsDestroyed = 0; // tracks progress toward armor gains during phase 1
         this.score = 0;
         this.currentInput = {left: false, right: false, shoot: false};
         this.userName = userName;
@@ -21,15 +23,12 @@ class Player {
         this.health -= 1;
         return this.isDead();
     }
-
     isDead(){
         return this.health <= 0;
     }
-
     getSocketId(){
         return this.id
     }
-
     update(){
         if (this.currentInput['left'] === true){
             this.x -= SHIP.speed;
@@ -43,9 +42,7 @@ class Player {
         if (this.currentInput['shoot'] === true){
             // TODO
         }
-
     }
-
     shoot(){
         const now = Date.now();
         if (now - this.lastShotTime < SHIP.cooldown){
@@ -58,8 +55,6 @@ class Player {
             owner: null,
             facing: this.facing
         };
-
     }
 }
-
 module.exports = Player;

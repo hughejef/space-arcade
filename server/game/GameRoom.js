@@ -142,8 +142,13 @@ class GameRoom {
                     this.projectiles.splice(projIndex, 1);
                     // projectile.owner is the slot string ('player1' or 'player2'),
                     const shooter = this.playerMap[projectile.owner];
-                    // +1 to shooting player
-                    if (shooter) shooter.score += 1;
+                    // +1 to shooting player and track armor progress
+                    // every 10 asteroids destroyed grants 1 armor heart, capped at maxHealth (3)
+                    if (shooter) {
+                        shooter.score += 1;
+                        shooter.asteroidsDestroyed += 1;
+                        shooter.health = Math.min(shooter.maxHealth, Math.floor(shooter.asteroidsDestroyed / 10));
+                    }
                     // stop with one projectile killing one asteroid
                     break;
                 }
