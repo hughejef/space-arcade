@@ -82,7 +82,7 @@ function GameOver({ matchResult, slot, onPlayAgain }) {
               fontWeight: 'bold',
               cursor: 'pointer',
             }}>
-            PLAY AGAIN
+            MAIN MENU
           </button>
         </div>
       </div>
