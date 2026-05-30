@@ -83,11 +83,11 @@ function Instructions({ onBack }) {
             marginTop: '0',
             marginBottom: '20px',
             textShadow: '0 0 16px #ffff0066',
-          }}>📖 HOW TO PLAY</h2>
+          }}>HOW TO PLAY</h2>
 
           {/* getting started: username + create or join */}
           <Section>
-            <SectionHeader color="#00ff88">🚀 GETTING STARTED</SectionHeader>
+            <SectionHeader color="#00ff88">GETTING STARTED</SectionHeader>
             <p style={{ color: '#ccc', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
               Enter a username on the main menu. To start a new match, click <strong style={{ color: '#00ff88' }}>CREATE GAME</strong>. You will get a 4-digit code to share with your friend. To join an existing match, click <strong style={{ color: '#00ff88' }}>JOIN GAME</strong> and enter the code your friend shared with you.
             </p>
@@ -95,7 +95,7 @@ function Instructions({ onBack }) {
 
           {/* controls: arrow keys and space */}
           <Section>
-            <SectionHeader color="#ffff00">🎮 CONTROLS</SectionHeader>
+            <SectionHeader color="#ffff00">CONTROLS</SectionHeader>
             <div style={{
               display: 'flex',
               gap: '24px',
@@ -121,7 +121,7 @@ function Instructions({ onBack }) {
 
           {/* phase 1: destroy asteroids for points and armor */}
           <Section>
-            <SectionHeader color="#ff8800">⚡ PHASE 1 — ASTEROID PHASE</SectionHeader>
+            <SectionHeader color="#ff8800">PHASE 1 — ASTEROID PHASE</SectionHeader>
             <p style={{ color: '#ccc', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
               Destroy asteroids to score points and build up your armor. Every <strong style={{ color: '#ff8800' }}>10 asteroids destroyed</strong> earns you 1 armor heart, up to a max of 3 hearts. The more aggressive you are in phase 1, the better your chances in phase 2. When all asteroids are cleared, phase 2 begins.
             </p>
@@ -129,7 +129,7 @@ function Instructions({ onBack }) {
 
           {/* phase 2: fight to the death */}
           <Section>
-            <SectionHeader color="#ff4466">⚔️ PHASE 2 — FIGHT PHASE</SectionHeader>
+            <SectionHeader color="#ff4466">PHASE 2 — FIGHT PHASE</SectionHeader>
             <p style={{ color: '#ccc', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
               Battle your opponent in a dogfight. Each hit removes 1 armor heart. <strong style={{ color: '#ff4466' }}>3 hits and you are out.</strong> The last ship standing wins the match and earns a <strong style={{ color: '#00ff88' }}>+50 bonus</strong> on top of their phase 1 score. Tip: projectiles bounce off walls so watch your angles.
             </p>
@@ -137,7 +137,7 @@ function Instructions({ onBack }) {
 
           {/* leaderboard: check standings after */}
           <Section>
-            <SectionHeader color="#ffd700">🏆 LEADERBOARD</SectionHeader>
+            <SectionHeader color="#ffd700">LEADERBOARD</SectionHeader>
             <p style={{ color: '#ccc', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
               After each match, your score is saved to the leaderboard. Click the <strong style={{ color: '#ffff00' }}>LEADERBOARD</strong> button on the main menu to view your standings filtered by <strong style={{ color: '#ffd700' }}>daily</strong>, <strong style={{ color: '#c0c0c0' }}>weekly</strong>, or <strong style={{ color: '#cd7f32' }}>monthly</strong>. Climb to the top by stacking wins.
             </p>
