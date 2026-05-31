@@ -9,6 +9,7 @@ import shipExplosionSound from './assets/sounds/ship-explosion.wav'
 import bounceSound from './assets/sounds/bounce.wav'
 import victorySound from './assets/sounds/victory.wav'
 import defeatSound from './assets/sounds/defeat.wav'
+import fightSound from './assets/sounds/fight.wav'
 import bgMusic from './assets/sounds/bg-music.mp3'
 
 // each sound has a path and a default volume
@@ -21,6 +22,7 @@ const SOUNDS = {
   bounce: { src: bounceSound, volume: 0.3 },
   victory: { src: victorySound, volume: 0.6 },
   defeat: { src: defeatSound, volume: 0.6 },
+  fight: { src: fightSound, volume: 0.7 },
 }
 
 // global mute state - shared across all play calls

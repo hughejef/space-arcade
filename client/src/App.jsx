@@ -257,6 +257,8 @@ function GameCanvas({ slot }) {
           phaseBanner = { text: 'ASTEROID PHASE', color: '#ffaa00', lifetime: 120, maxLifetime: 120 }
         } else if (state.phase === 'phase2') {
           phaseBanner = { text: 'FIGHT!', color: '#ff4466', lifetime: 120, maxLifetime: 120 }
+          // play the FIGHT! sound when phase 2 starts to match the banner
+          playSound('fight')
         }
         previousPhase = state.phase
       }
