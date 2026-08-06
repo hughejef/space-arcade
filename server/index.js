@@ -12,7 +12,16 @@ const app = express();
 app.use(cors()); // allow cross-origin HTTP requests so the deployed client can hit /leaderboard
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' }
+  cors: {
+    origin: ['https://hughejef.github.io', 'http://localhost:5173'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+    transports: ['websocket', 'polling']
+  },
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: 5
 });
 
 app.get('/', (req, res) => {
